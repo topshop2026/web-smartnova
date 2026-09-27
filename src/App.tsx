@@ -112,7 +112,12 @@ function AppContent() {
           />
         )}
 
-        {page === 'account' && <AccountPage onBack={() => handleNavigate('home')} />}
+        {page === 'account' && (
+          <AccountPage
+            onBack={() => handleNavigate('home')}
+            onAdmin={() => handleNavigate('admin')}
+          />
+        )}
 
         {page === 'admin' && <AdminPage onBack={() => handleNavigate('home')} />}
       </main>

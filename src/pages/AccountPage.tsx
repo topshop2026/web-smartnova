@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { ArrowLeft, LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowLeft, LayoutDashboard, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 type AccountPageProps = {
   onBack: () => void;
+  onAdmin: () => void;
 };
 
-export function AccountPage({ onBack }: AccountPageProps) {
+export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
   const { user, loading, signIn, signUp, signOut } = useAuth();
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
@@ -55,9 +56,17 @@ export function AccountPage({ onBack }: AccountPageProps) {
               <ShieldCheck size={16} className="text-emerald-600" />
               {user.app_metadata.role === 'admin' ? 'Administrator' : 'Customer account'}
             </div>
+            {user.app_metadata.role === 'admin' && (
+              <button
+                onClick={onAdmin}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
+              >
+                <LayoutDashboard size={16} /> Open admin dashboard
+              </button>
+            )}
             <button
               onClick={() => void signOut()}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               <LogOut size={16} /> Sign out
             </button>
