@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ShoppingCart, Search, Menu, X, Zap, Download, UserRound } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { getCategoryIcon } from '@/lib/icons';
+import { getCategoryIcon, isCategoryIconUrl } from '@/lib/icons';
 import type { Category } from '@/lib/supabase';
 
 type HeaderProps = {
@@ -239,7 +239,11 @@ export function Header({
                       }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
                     >
-                      <Icon size={16} className="text-slate-400" />
+                      {isCategoryIconUrl(cat.icon) ? (
+                        <img src={cat.icon} alt="" className="h-4 w-4 rounded object-cover" />
+                      ) : (
+                        <Icon size={16} className="text-slate-400" />
+                      )}
                       {cat.name}
                     </button>
                   );

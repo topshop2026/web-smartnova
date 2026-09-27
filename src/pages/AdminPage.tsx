@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, CheckCircle2, PackagePlus, Plus, Save, Trash2, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FolderPen, PackagePlus, Plus, Save, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Category, type Product } from '@/lib/supabase';
+import { isCategoryIconUrl } from '@/lib/icons';
 import { formatPrice } from '@/lib/utils';
 
 type AdminPageProps = {
@@ -18,7 +19,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addingProduct, setAddingProduct] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const [newCategory, setNewCategory] = useState({ name: '', slug: '', description: '', icon: 'Package' });
   const [newProduct, setNewProduct] = useState({
     name: '',
     slug: '',
@@ -85,6 +91,67 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setMessage(`${product.name} deleted from the catalog.`);
     }
     setDeletingId(null);
+  };
+
+  const updateCategory = (categoryId: string, changes: Partial<Category>) => {
+    setCategories((current) => current.map((category) =>
+      category.id === categoryId ? { ...category, ...changes } : category
+    ));
+  };
+
+  const saveCategory = async (category: Category) => {
+    setSavingCategoryId(category.id);
+    setMessage('');
+    const { error } = await supabase.from('categories').update({
+      name: category.name.trim(),
+      slug: category.slug.trim(),
+      description: category.description?.trim() || null,
+      icon: category.icon.trim() || 'Package',
+    }).eq('id', category.id);
+    setMessage(error ? error.message : `${category.name} category saved.`);
+    setSavingCategoryId(null);
+  };
+
+  const deleteCategory = async (category: Category) => {
+    if (!window.confirm(`Delete category "${category.name}"? Products in it will remain uncategorized.`)) return;
+    setDeletingCategoryId(category.id);
+    setMessage('');
+    const { error } = await supabase.from('categories').delete().eq('id', category.id);
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setCategories((current) => current.filter((item) => item.id !== category.id));
+      setMessage(`${category.name} category deleted.`);
+    }
+    setDeletingCategoryId(null);
+  };
+
+  const createCategory = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAddingCategory(true);
+    setMessage('');
+    const name = newCategory.name.trim();
+    const slug = newCategory.slug.trim() || name.toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    const { data, error } = await supabase.from('categories').insert({
+      name,
+      slug,
+      description: newCategory.description.trim() || null,
+      icon: newCategory.icon.trim() || 'Package',
+      display_order: categories.length + 1,
+    }).select('*').single();
+    if (error) {
+      setMessage(error.message);
+    } else if (data) {
+      setCategories((current) => [...current, data as Category].sort((left, right) => left.display_order - right.display_order));
+      setNewCategory({ name: '', slug: '', description: '', icon: 'Package' });
+      setShowCategoryForm(false);
+      setMessage(`${name} category added.`);
+    }
+    setAddingCategory(false);
   };
 
   const createProduct = async (event: FormEvent<HTMLFormElement>) => {
@@ -201,6 +268,83 @@ export function AdminPage({ onBack }: AdminPageProps) {
       </div>
 
       {message && <p role="status" className="mb-4 text-sm text-blue-700">{message}</p>}
+      <section className="mb-7 rounded-xl border border-violet-100 bg-violet-50/60 p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-sm font-semibold text-violet-900">
+              <FolderPen size={17} /> Category management
+            </div>
+            <p className="mt-1 text-xs text-violet-700">Add, edit, or remove the categories used by your products.</p>
+          </div>
+          <button
+            onClick={() => setShowCategoryForm((visible) => !visible)}
+            className="flex items-center gap-2 rounded-md bg-violet-700 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-800"
+          >
+            {showCategoryForm ? <X size={16} /> : <Plus size={16} />}
+            {showCategoryForm ? 'Close' : 'Add category'}
+          </button>
+        </div>
+        {showCategoryForm && (
+          <form onSubmit={createCategory} className="mt-5 grid gap-3 border-t border-violet-200 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="text-xs font-medium text-slate-600">
+              Category name
+              <input required value={newCategory.name} onChange={(event) => setNewCategory({ ...newCategory, name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Slug
+              <input value={newCategory.slug} onChange={(event) => setNewCategory({ ...newCategory, slug: event.target.value })} placeholder="generated-from-name" className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Icon name or image URL
+              <input value={newCategory.icon} onChange={(event) => setNewCategory({ ...newCategory, icon: event.target.value })} placeholder="Package or https://..." className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Description
+              <input value={newCategory.description} onChange={(event) => setNewCategory({ ...newCategory, description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <div className="flex justify-end sm:col-span-2 lg:col-span-4">
+              <button type="submit" disabled={addingCategory} className="flex items-center gap-2 rounded-md bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50">
+                <Plus size={16} /> {addingCategory ? 'Adding...' : 'Create category'}
+              </button>
+            </div>
+          </form>
+        )}
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {categories.map((category) => (
+            <div key={category.id} className="rounded-lg border border-violet-100 bg-white p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Name
+                  <input value={category.name} onChange={(event) => updateCategory(category.id, { name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm font-semibold text-slate-900" />
+                </label>
+                <label className="text-xs font-medium text-slate-600">
+                  Slug
+                  <input value={category.slug} onChange={(event) => updateCategory(category.id, { slug: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
+                </label>
+                <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+                  Description
+                  <input value={category.description ?? ''} onChange={(event) => updateCategory(category.id, { description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
+                </label>
+                <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+                  Icon name or ImageKit/Google Drive URL
+                  <input value={category.icon} onChange={(event) => updateCategory(category.id, { icon: event.target.value })} placeholder="Package or https://..." className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
+                </label>
+              </div>
+              {isCategoryIconUrl(category.icon) && (
+                <img src={category.icon} alt="Category icon preview" className="mt-3 h-14 w-14 rounded-lg border border-slate-200 object-cover" />
+              )}
+              <div className="mt-3 flex justify-end gap-2">
+                <button onClick={() => void saveCategory(category)} disabled={savingCategoryId === category.id || deletingCategoryId === category.id} className="flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
+                  <Save size={14} /> Save
+                </button>
+                <button onClick={() => void deleteCategory(category)} disabled={savingCategoryId === category.id || deletingCategoryId === category.id} className="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
       {showAddForm && (
         <form onSubmit={createProduct} className="mb-7 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
           <h2 className="mb-4 text-base font-semibold text-slate-900">New product</h2>

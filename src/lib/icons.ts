@@ -26,3 +26,7 @@ const iconMap: Record<string, LucideIcon> = {
 export function getCategoryIcon(name: string): LucideIcon {
   return iconMap[name] || Package;
 }
+
+export function isCategoryIconUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value.trim());
+}

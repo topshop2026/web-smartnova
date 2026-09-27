@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Search, SlidersHorizontal, X, Download } from 'lucide-react';
 import { supabase, type Product, type Category } from '@/lib/supabase';
-import { getCategoryIcon } from '@/lib/icons';
+import { getCategoryIcon, isCategoryIconUrl } from '@/lib/icons';
 import { ProductCard } from '@/components/ProductCard';
 import { formatPrice } from '@/lib/utils';
 
@@ -198,7 +198,11 @@ export function CatalogPage({
                           : 'text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <Icon size={16} className="shrink-0" />
+                      {isCategoryIconUrl(cat.icon) ? (
+                        <img src={cat.icon} alt="" className="h-4 w-4 shrink-0 rounded object-cover" />
+                      ) : (
+                        <Icon size={16} className="shrink-0" />
+                      )}
                       {cat.name}
                     </button>
                   );

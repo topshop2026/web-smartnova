@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { supabase, type Product, type Category } from '@/lib/supabase';
-import { getCategoryIcon } from '@/lib/icons';
+import { getCategoryIcon, isCategoryIconUrl } from '@/lib/icons';
 import { ProductCard } from '@/components/ProductCard';
 
 type HomePageProps = {
@@ -147,7 +147,11 @@ export function HomePage({ onNavigate, onAddToCart, onProductClick }: HomePagePr
                 className="group flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/50"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-600 transition group-hover:bg-blue-50 group-hover:text-blue-600">
-                  <Icon size={22} />
+                  {isCategoryIconUrl(cat.icon) ? (
+                    <img src={cat.icon} alt="" className="h-7 w-7 rounded-md object-cover" />
+                  ) : (
+                    <Icon size={22} />
+                  )}
                 </div>
                 <span className="text-xs font-semibold text-slate-700 group-hover:text-blue-600">
                   {cat.name}
