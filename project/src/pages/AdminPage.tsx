@@ -1,0 +1,317 @@
+import { useEffect, useState, type FormEvent } from 'react';
+import { ArrowLeft, Plus, Save, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { supabase, type Category, type Product } from '@/lib/supabase';
+import { formatPrice } from '@/lib/utils';
+
+type AdminPageProps = {
+  onBack: () => void;
+};
+
+export function AdminPage({ onBack }: AdminPageProps) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [message, setMessage] = useState('');
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    category_id: '',
+    price: 0,
+    feature_price: 10000,
+    stock: 100,
+    image_url: '',
+    file_type: 'ZIP',
+    file_size: '1 MB',
+    tags: '',
+  });
+
+  useEffect(() => {
+    if (user?.app_metadata.role !== 'admin') {
+      setLoading(false);
+      return;
+    }
+
+    const loadDashboard = async () => {
+      const [productResult, categoryResult] = await Promise.all([
+        supabase.from('products').select('*').order('name'),
+        supabase.from('categories').select('*').order('display_order'),
+      ]);
+      if (productResult.error) setMessage(productResult.error.message);
+      setProducts((productResult.data as Product[] | null) ?? []);
+      setCategories((categoryResult.data as Category[] | null) ?? []);
+      setLoading(false);
+    };
+    void loadDashboard();
+  }, [user?.app_metadata.role, userId]);
+
+  const updateProduct = (productId: string, changes: Partial<Product>) => {
+    setProducts((current) => current.map((product) =>
+      product.id === productId ? { ...product, ...changes } : product
+    ));
+  };
+
+  const saveProduct = async (product: Product) => {
+    setSavingId(product.id);
+    setMessage('');
+    const { error } = await supabase.from('products').update({
+      price: product.price,
+      feature_price: product.feature_price,
+      duration_prices: product.duration_prices,
+      stock: product.stock,
+    }).eq('id', product.id);
+
+    setMessage(error ? error.message : `${product.name} saved.`);
+    setSavingId(null);
+  };
+
+  const createProduct = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAddingProduct(true);
+    setMessage('');
+    const name = newProduct.name.trim();
+    const slug = newProduct.slug.trim() || name.toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    const basePrice = Number(newProduct.price);
+    const duration_prices = [
+      { days: 1, surcharge: Math.round(basePrice * 0.5 / 1000) * 1000 },
+      { days: 2, surcharge: Math.round(basePrice * 0.25 / 1000) * 1000 },
+      { days: 3, surcharge: Math.round(basePrice * 0.1 / 1000) * 1000 },
+      { days: 7, surcharge: 0 },
+      { days: 14, surcharge: 0 },
+    ];
+    const { data, error } = await supabase.from('products').insert({
+      name,
+      slug,
+      description: newProduct.description.trim(),
+      category_id: newProduct.category_id || null,
+      price: basePrice,
+      original_price: null,
+      feature_price: Number(newProduct.feature_price),
+      duration_prices,
+      stock: Number(newProduct.stock),
+      image_url: newProduct.image_url.trim() || null,
+      preview_url: null,
+      file_type: newProduct.file_type.trim() || null,
+      file_size: newProduct.file_size.trim() || null,
+      tags: newProduct.tags.split(',').map((tag) => tag.trim()).filter(Boolean),
+      rating: 0,
+      review_count: 0,
+      sales_count: 0,
+      is_featured: false,
+      is_bestseller: false,
+      is_new: true,
+    }).select('*').single();
+
+    if (error) {
+      setMessage(error.message);
+    } else if (data) {
+      setProducts((current) => [...current, data as Product].sort((left, right) => left.name.localeCompare(right.name)));
+      setNewProduct({
+        name: '', slug: '', description: '', category_id: '', price: 0,
+        feature_price: 10000, stock: 100, image_url: '', file_type: 'ZIP', file_size: '1 MB', tags: '',
+      });
+      setShowAddForm(false);
+      setMessage(`${name} added to the catalog.`);
+    }
+    setAddingProduct(false);
+  };
+
+  const lowStockCount = products.filter((product) => product.stock <= 5).length;
+  const totalStock = products.reduce((total, product) => total + product.stock, 0);
+
+  if (user?.app_metadata.role !== 'admin') {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+        <h1 className="text-xl font-semibold text-slate-900">Administrator access required</h1>
+        <p className="mt-2 text-sm text-slate-500">Sign in with an account assigned the admin role.</p>
+        <button onClick={onBack} className="mt-5 text-sm font-medium text-blue-700">Back to store</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <button onClick={onBack} className="mb-5 flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
+        <ArrowLeft size={16} /> Back to store
+      </button>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Product dashboard</h1>
+          <p className="mt-1 text-sm text-slate-500">Manage inventory and pricing in Indonesian rupiah (IDR).</p>
+        </div>
+        <button
+          onClick={() => setShowAddForm((visible) => !visible)}
+          className="flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
+        >
+          {showAddForm ? <X size={16} /> : <Plus size={16} />}
+          {showAddForm ? 'Close form' : 'Add product'}
+        </button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="border-l-2 border-slate-900 pl-3">
+          <p className="text-xs font-medium text-slate-500">Catalog products</p>
+          <p className="mt-1 text-xl font-semibold text-slate-900">{products.length}</p>
+        </div>
+        <div className="border-l-2 border-emerald-600 pl-3">
+          <p className="text-xs font-medium text-slate-500">Available stock</p>
+          <p className="mt-1 text-xl font-semibold text-slate-900">{totalStock}</p>
+        </div>
+        <div className="border-l-2 border-amber-500 pl-3">
+          <p className="text-xs font-medium text-slate-500">Low stock (5 or fewer)</p>
+          <p className="mt-1 text-xl font-semibold text-slate-900">{lowStockCount}</p>
+        </div>
+      </div>
+
+      {message && <p role="status" className="mb-4 text-sm text-blue-700">{message}</p>}
+      {showAddForm && (
+        <form onSubmit={createProduct} className="mb-7 border-y border-slate-200 py-5">
+          <h2 className="mb-4 text-base font-semibold text-slate-900">New product</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="text-xs font-medium text-slate-600">
+              Product name
+              <input required value={newProduct.name} onChange={(event) => setNewProduct({ ...newProduct, name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Slug
+              <input value={newProduct.slug} onChange={(event) => setNewProduct({ ...newProduct, slug: event.target.value })} placeholder="generated-from-name" className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Category
+              <select value={newProduct.category_id} onChange={(event) => setNewProduct({ ...newProduct, category_id: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm">
+                <option value="">No category</option>
+                {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Base price (IDR)
+              <input required type="number" min="1" step="1000" value={newProduct.price} onChange={(event) => setNewProduct({ ...newProduct, price: Number(event.target.value) })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Stock
+              <input required type="number" min="0" step="1" value={newProduct.stock} onChange={(event) => setNewProduct({ ...newProduct, stock: Number(event.target.value) })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Price per feature (IDR)
+              <input required type="number" min="0" step="1000" value={newProduct.feature_price} onChange={(event) => setNewProduct({ ...newProduct, feature_price: Number(event.target.value) })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              File type
+              <input value={newProduct.file_type} onChange={(event) => setNewProduct({ ...newProduct, file_type: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              File size
+              <input value={newProduct.file_size} onChange={(event) => setNewProduct({ ...newProduct, file_size: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2 lg:col-span-4">
+              Description
+              <textarea required rows={3} value={newProduct.description} onChange={(event) => setNewProduct({ ...newProduct, description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+              Image URL
+              <input type="url" value={newProduct.image_url} onChange={(event) => setNewProduct({ ...newProduct, image_url: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+              Tags (comma separated)
+              <input value={newProduct.tags} onChange={(event) => setNewProduct({ ...newProduct, tags: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button type="submit" disabled={addingProduct} className="flex items-center gap-2 rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
+              <Plus size={16} /> {addingProduct ? 'Adding...' : 'Create product'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <p className="py-12 text-center text-sm text-slate-500">Loading products...</p>
+      ) : (
+        <div className="divide-y divide-slate-200 border-y border-slate-200">
+          {products.map((product) => (
+            <section key={product.id} className="grid gap-5 py-5 lg:grid-cols-[minmax(150px,1fr)_150px_150px_125px_2fr_auto] lg:items-end">
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-semibold text-slate-900">{product.name}</h2>
+                <p className="mt-1 text-xs text-slate-500">Base: {formatPrice(product.price)}</p>
+              </div>
+              <label className="text-xs font-medium text-slate-600">
+                Base price
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={product.price}
+                  onChange={(event) => updateProduct(product.id, { price: Number(event.target.value) })}
+                  className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900"
+                />
+              </label>
+              <label className="text-xs font-medium text-slate-600">
+                Price per feature
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={product.feature_price}
+                  onChange={(event) => updateProduct(product.id, { feature_price: Number(event.target.value) })}
+                  className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900"
+                />
+              </label>
+              <label className="text-xs font-medium text-slate-600">
+                Available stock
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={product.stock}
+                  onChange={(event) => updateProduct(product.id, { stock: Number(event.target.value) })}
+                  className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900"
+                />
+              </label>
+              <fieldset>
+                <legend className="mb-1.5 text-xs font-medium text-slate-600">Rush surcharge by delivery time</legend>
+                <div className="grid grid-cols-5 gap-2">
+                  {product.duration_prices.map((option, index) => (
+                    <label key={option.days} className="text-[11px] text-slate-500">
+                      {option.days} day{option.days === 1 ? '' : 's'}
+                      <input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={option.surcharge}
+                        onChange={(event) => {
+                          const duration_prices = [...product.duration_prices];
+                          duration_prices[index] = { ...option, surcharge: Number(event.target.value) };
+                          updateProduct(product.id, { duration_prices });
+                        }}
+                        className="mt-1 block w-full rounded-md border border-slate-300 px-2 py-2 text-xs text-slate-900"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <button
+                onClick={() => void saveProduct(product)}
+                disabled={savingId === product.id}
+                aria-label={`Save pricing for ${product.name}`}
+                title="Save pricing"
+                className="flex h-10 items-center justify-center rounded-md bg-slate-900 px-3 text-white hover:bg-slate-700 disabled:opacity-50"
+              >
+                <Save size={17} />
+              </button>
+            </section>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

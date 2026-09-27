@@ -1,0 +1,4 @@
+project_id = "smartnova"
+
+[functions.midtrans-webhook]
+verify_jwt = false
