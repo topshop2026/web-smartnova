@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, Plus, Save, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, PackagePlus, Plus, Save, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Category, type Product } from '@/lib/supabase';
 import { formatPrice } from '@/lib/utils';
@@ -15,6 +15,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addingProduct, setAddingProduct] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [message, setMessage] = useState('');
@@ -61,6 +62,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     setSavingId(product.id);
     setMessage('');
     const { error } = await supabase.from('products').update({
+      name: product.name.trim(),
       price: product.price,
       feature_price: product.feature_price,
       duration_prices: product.duration_prices,
@@ -69,6 +71,20 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
     setMessage(error ? error.message : `${product.name} saved.`);
     setSavingId(null);
+  };
+
+  const deleteProduct = async (product: Product) => {
+    if (!window.confirm(`Delete "${product.name}" from the catalog? This cannot be undone.`)) return;
+    setDeletingId(product.id);
+    setMessage('');
+    const { error } = await supabase.from('products').delete().eq('id', product.id);
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setProducts((current) => current.filter((item) => item.id !== product.id));
+      setMessage(`${product.name} deleted from the catalog.`);
+    }
+    setDeletingId(null);
   };
 
   const createProduct = async (event: FormEvent<HTMLFormElement>) => {
@@ -144,38 +160,49 @@ export function AdminPage({ onBack }: AdminPageProps) {
       <button onClick={onBack} className="mb-5 flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
         <ArrowLeft size={16} /> Back to store
       </button>
+      <div className="mb-7 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-700 px-6 py-7 text-white shadow-lg shadow-indigo-200 sm:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-100">
+              <PackagePlus size={17} /> SmartNova catalog control
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Product dashboard</h1>
+            <p className="mt-2 max-w-xl text-sm text-blue-100">Update your catalog, pricing, and inventory from one colorful workspace.</p>
+          </div>
+          <button
+            onClick={() => setShowAddForm((visible) => !visible)}
+            className="flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm hover:bg-blue-50"
+          >
+            {showAddForm ? <X size={16} /> : <Plus size={16} />}
+            {showAddForm ? 'Close form' : 'Add product'}
+          </button>
+        </div>
+      </div>
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Product dashboard</h1>
+          <h2 className="text-lg font-semibold text-slate-900">Catalog overview</h2>
           <p className="mt-1 text-sm text-slate-500">Manage inventory and pricing in Indonesian rupiah (IDR).</p>
         </div>
-        <button
-          onClick={() => setShowAddForm((visible) => !visible)}
-          className="flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
-        >
-          {showAddForm ? <X size={16} /> : <Plus size={16} />}
-          {showAddForm ? 'Close form' : 'Add product'}
-        </button>
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="border-l-2 border-slate-900 pl-3">
+        <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
           <p className="text-xs font-medium text-slate-500">Catalog products</p>
-          <p className="mt-1 text-xl font-semibold text-slate-900">{products.length}</p>
+          <p className="mt-1 text-2xl font-bold text-blue-700">{products.length}</p>
         </div>
-        <div className="border-l-2 border-emerald-600 pl-3">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
           <p className="text-xs font-medium text-slate-500">Available stock</p>
-          <p className="mt-1 text-xl font-semibold text-slate-900">{totalStock}</p>
+          <p className="mt-1 text-2xl font-bold text-emerald-700">{totalStock}</p>
         </div>
-        <div className="border-l-2 border-amber-500 pl-3">
+        <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
           <p className="text-xs font-medium text-slate-500">Low stock (5 or fewer)</p>
-          <p className="mt-1 text-xl font-semibold text-slate-900">{lowStockCount}</p>
+          <p className="mt-1 text-2xl font-bold text-amber-700">{lowStockCount}</p>
         </div>
       </div>
 
       {message && <p role="status" className="mb-4 text-sm text-blue-700">{message}</p>}
       {showAddForm && (
-        <form onSubmit={createProduct} className="mb-7 border-y border-slate-200 py-5">
+        <form onSubmit={createProduct} className="mb-7 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
           <h2 className="mb-4 text-base font-semibold text-slate-900">New product</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs font-medium text-slate-600">
@@ -237,11 +264,19 @@ export function AdminPage({ onBack }: AdminPageProps) {
       {loading ? (
         <p className="py-12 text-center text-sm text-slate-500">Loading products...</p>
       ) : (
-        <div className="divide-y divide-slate-200 border-y border-slate-200">
+        <div className="space-y-4">
           {products.map((product) => (
-            <section key={product.id} className="grid gap-5 py-5 lg:grid-cols-[minmax(150px,1fr)_150px_150px_125px_2fr_auto] lg:items-end">
+            <section key={product.id} className="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm transition hover:shadow-md lg:grid lg:grid-cols-[minmax(150px,1fr)_150px_150px_125px_2fr_auto] lg:items-end">
               <div className="min-w-0">
-                <h2 className="truncate text-sm font-semibold text-slate-900">{product.name}</h2>
+                <label className="text-xs font-medium text-slate-600">
+                  Product name
+                  <input
+                    required
+                    value={product.name}
+                    onChange={(event) => updateProduct(product.id, { name: event.target.value })}
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm font-semibold text-slate-900"
+                  />
+                </label>
                 <p className="mt-1 text-xs text-slate-500">Base: {formatPrice(product.price)}</p>
               </div>
               <label className="text-xs font-medium text-slate-600">
@@ -299,15 +334,28 @@ export function AdminPage({ onBack }: AdminPageProps) {
                   ))}
                 </div>
               </fieldset>
-              <button
-                onClick={() => void saveProduct(product)}
-                disabled={savingId === product.id}
-                aria-label={`Save pricing for ${product.name}`}
-                title="Save pricing"
-                className="flex h-10 items-center justify-center rounded-md bg-slate-900 px-3 text-white hover:bg-slate-700 disabled:opacity-50"
-              >
-                <Save size={17} />
-              </button>
+              <div className="flex gap-2 lg:flex-col">
+                <button
+                  onClick={() => void saveProduct(product)}
+                  disabled={savingId === product.id || deletingId === product.id}
+                  aria-label={`Save changes for ${product.name}`}
+                  title="Save changes"
+                  className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {savingId === product.id ? <CheckCircle2 size={17} /> : <Save size={17} />}
+                  <span className="lg:hidden">Save</span>
+                </button>
+                <button
+                  onClick={() => void deleteProduct(product)}
+                  disabled={savingId === product.id || deletingId === product.id}
+                  aria-label={`Delete ${product.name}`}
+                  title="Delete product"
+                  className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                >
+                  <Trash2 size={17} />
+                  <span className="lg:hidden">Delete</span>
+                </button>
+              </div>
             </section>
           ))}
         </div>
