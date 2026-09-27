@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, CheckCircle2, FolderPen, PackagePlus, Plus, Save, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { supabase, type Category, type Product } from '@/lib/supabase';
+import { supabase, type Category, type Order, type Product } from '@/lib/supabase';
 import { isCategoryIconUrl } from '@/lib/icons';
+import { getOrderStatus, orderStatuses } from '@/lib/orderStatus';
 import { formatPrice } from '@/lib/utils';
 
 type AdminPageProps = {
@@ -14,6 +15,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const userId = user?.id;
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -23,6 +25,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [newCategory, setNewCategory] = useState({ name: '', slug: '', description: '', icon: 'Package' });
   const [newProduct, setNewProduct] = useState({
@@ -50,13 +53,35 @@ export function AdminPage({ onBack }: AdminPageProps) {
         supabase.from('products').select('*').order('name'),
         supabase.from('categories').select('*').order('display_order'),
       ]);
+      const orderResult = await supabase.from('orders').select('*').order('created_at', { ascending: false });
       if (productResult.error) setMessage(productResult.error.message);
+      if (orderResult.error) setMessage(orderResult.error.message);
       setProducts((productResult.data as Product[] | null) ?? []);
       setCategories((categoryResult.data as Category[] | null) ?? []);
+      setOrders((orderResult.data as Order[] | null) ?? []);
       setLoading(false);
     };
     void loadDashboard();
   }, [user?.app_metadata.role, userId]);
+
+  const updateOrderStatus = async (order: Order, fulfillmentStatus: string) => {
+    setSavingOrderId(order.id);
+    setMessage('');
+    const { error } = await supabase.rpc('update_order_fulfillment_status', {
+      p_order_id: order.id,
+      p_next_status: fulfillmentStatus,
+    });
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setOrders((current) => current.map((item) => item.id === order.id
+        ? { ...item, fulfillment_status: fulfillmentStatus }
+        : item
+      ));
+      setMessage(`Order ${order.order_number} status updated.`);
+    }
+    setSavingOrderId(null);
+  };
 
   const updateProduct = (productId: string, changes: Partial<Product>) => {
     setProducts((current) => current.map((product) =>
@@ -268,6 +293,42 @@ export function AdminPage({ onBack }: AdminPageProps) {
       </div>
 
       {message && <p role="status" className="mb-4 text-sm text-blue-700">{message}</p>}
+      <section className="mb-7 rounded-xl border border-cyan-100 bg-cyan-50/60 p-5 shadow-sm">
+        <div className="flex items-center gap-2 text-sm font-semibold text-cyan-900">
+          <PackagePlus size={17} /> Status Order
+        </div>
+        <p className="mt-1 text-xs text-cyan-700">Update the fulfillment stage customers see in their account.</p>
+        <div className="mt-5 space-y-3">
+          {orders.length === 0 ? (
+            <p className="rounded-lg border border-cyan-100 bg-white p-4 text-sm text-slate-500">Belum ada order.</p>
+          ) : orders.map((order) => {
+            const currentStatus = getOrderStatus(order.fulfillment_status);
+            return (
+              <div key={order.id} className="rounded-lg border border-cyan-100 bg-white p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{order.order_number}</p>
+                    <p className="mt-1 text-xs text-slate-500">{order.customer_name} · {order.customer_email}</p>
+                  </div>
+                  <select
+                    value={currentStatus.value}
+                    onChange={(event) => void updateOrderStatus(order, event.target.value)}
+                    disabled={savingOrderId === order.id}
+                    className={`rounded-lg border-0 px-3 py-2 text-sm font-semibold ${currentStatus.color}`}
+                  >
+                    {orderStatuses.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
+                  </select>
+                </div>
+                <div className="mt-4 grid grid-cols-4 gap-1">
+                  {orderStatuses.map((status) => (
+                    <div key={status.value} className={`h-1.5 rounded-full ${status.value === currentStatus.value || orderStatuses.findIndex((item) => item.value === status.value) < orderStatuses.findIndex((item) => item.value === currentStatus.value) ? 'bg-cyan-600' : 'bg-slate-200'}`} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
       <section className="mb-7 rounded-xl border border-violet-100 bg-violet-50/60 p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

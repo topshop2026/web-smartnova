@@ -74,6 +74,7 @@ export type Order = {
   customer_name: string;
   total_amount: number;
   status: string;
+  fulfillment_status: string;
   items_json: CartItem[];
   created_at: string;
 };

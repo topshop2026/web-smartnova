@@ -7,8 +7,10 @@ UPDATE products
 SET price = round(price * 16) * 1000,
     original_price = CASE
       WHEN original_price IS NULL THEN NULL
-      ELSE round(original_price * 16) * 1000
-    END;
+  WHEN original_price < 1000 THEN round(original_price * 16) * 1000
+  ELSE original_price
+    END
+WHERE price < 1000;
 
 UPDATE products
 SET duration_prices = jsonb_build_array(

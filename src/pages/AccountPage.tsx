@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, LayoutDashboard, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase, type Order } from '@/lib/supabase';
+import { getOrderStatus, orderStatuses } from '@/lib/orderStatus';
 
 type AccountPageProps = {
   onBack: () => void;
@@ -15,6 +17,16 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      setOrders([]);
+      return;
+    }
+    supabase.from('orders').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => setOrders((data as Order[] | null) ?? []));
+  }, [user]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -64,6 +76,33 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
                 <LayoutDashboard size={16} /> Open admin dashboard
               </button>
             )}
+            <div className="mt-6 border-t border-slate-200 pt-5">
+              <h2 className="text-base font-semibold text-slate-900">Status Pesanan</h2>
+              {orders.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-500">Belum ada pesanan.</p>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  {orders.map((order) => {
+                    const currentStatus = getOrderStatus(order.fulfillment_status);
+                    const currentIndex = orderStatuses.findIndex((status) => status.value === currentStatus.value);
+                    return (
+                      <div key={order.id} className="rounded-lg border border-slate-200 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-slate-900">{order.order_number}</span>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${currentStatus.color}`}>{currentStatus.label}</span>
+                        </div>
+                        <div className="mt-4 grid grid-cols-4 gap-1">
+                          {orderStatuses.map((status, index) => (
+                            <div key={status.value} className={`h-1.5 rounded-full ${index <= currentIndex ? 'bg-blue-600' : 'bg-slate-200'}`} title={status.label} />
+                          ))}
+                        </div>
+                        <p className="mt-2 text-xs text-slate-500">Pesanan dibuat {new Date(order.created_at).toLocaleDateString('id-ID')}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
             <button
               onClick={() => void signOut()}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
