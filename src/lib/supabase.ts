@@ -86,6 +86,7 @@ export type Order = {
   total_amount: number;
   status: string;
   fulfillment_status: string;
+  payment_redirect_url: string | null;
   items_json: OrderItem[];
   created_at: string;
 };

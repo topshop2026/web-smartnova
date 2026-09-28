@@ -32,22 +32,29 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
     }
 
     let active = true;
+    const loadOrders = async () => {
+      const { data, error: queryError } = await supabase
+        .from('orders')
+        .select('id, order_number, total_amount, status, fulfillment_status, payment_redirect_url, created_at, items_json')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (!active) return;
+      if (queryError) setError('Riwayat pesanan tidak dapat dimuat. Silakan coba lagi.');
+      else {
+        setError('');
+        setOrders((data as Order[] | null) ?? []);
+      }
+      setLoadingOrders(false);
+    };
+
     setLoadingOrders(true);
     setError('');
-    supabase
-      .from('orders')
-      .select('id, order_number, total_amount, status, fulfillment_status, created_at, items_json')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data, error: queryError }) => {
-        if (!active) return;
-        if (queryError) setError('Riwayat pesanan tidak dapat dimuat. Silakan coba lagi.');
-        setOrders((data as Order[] | null) ?? []);
-        setLoadingOrders(false);
-      });
+    void loadOrders();
+    const intervalId = window.setInterval(() => void loadOrders(), 5000);
 
     return () => {
       active = false;
+      window.clearInterval(intervalId);
     };
   }, [user]);
 
@@ -89,22 +96,49 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
       ) : (
         <div className="divide-y divide-slate-200">
           {orders.map((order) => {
-            const paymentStatus = getPaymentStatus(order.status);
-            const fulfillmentStatus = getOrderStatus(order.fulfillment_status);
+            const progressValue = order.status === 'completed' && order.fulfillment_status === 'waiting_payment'
+              ? 'payment_success'
+              : order.fulfillment_status;
+            const paymentValue = order.status === 'pending' && progressValue !== 'waiting_payment'
+              ? 'completed'
+              : order.status;
+            const paymentStatus = getPaymentStatus(paymentValue);
+            const fulfillmentStatus = getOrderStatus(progressValue);
             return (
-              <article key={order.id} className="grid gap-4 py-5 sm:grid-cols-[1fr_auto] sm:items-center">
+              <article key={order.id} className="grid gap-4 border-b border-slate-200 py-5 sm:grid-cols-[1fr_auto] sm:items-start">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-semibold text-slate-900">{order.order_number}</h2>
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${paymentStatus.color}`}>
                       {paymentStatus.label}
                     </span>
+                    {progressValue !== 'waiting_payment' && (
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${fulfillmentStatus.color}`}>
+                        Progres: {fulfillmentStatus.label}
+                      </span>
+                    )}
                   </div>
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="mt-2 text-xs text-slate-500">
                     {new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    <span className="mx-2 text-slate-300">|</span>
-                    Progres: {fulfillmentStatus.label}
                   </p>
+                  {order.status === 'pending'
+                    && progressValue === 'waiting_payment'
+                    && order.payment_redirect_url && (
+                    <div className="mt-3 rounded-lg border border-cyan-200 bg-cyan-50 p-3">
+                      <p className="text-sm font-medium text-cyan-950">Pembayaran belum terkonfirmasi.</p>
+                      <p className="mt-1 text-xs text-cyan-900">Buka halaman Midtrans, pilih QRIS, lalu pindai kode QR untuk membayar.</p>
+                      <a
+                        href={order.payment_redirect_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-2 inline-flex items-center rounded-md bg-cyan-700 px-3 py-2 text-xs font-semibold text-white hover:bg-cyan-800"
+                      >
+                        Bayar dengan QRIS
+                      </a>
+                    </div>
+                  )}
                   <ul className="mt-4 space-y-3 border-t border-slate-100 pt-3">
                     {(order.items_json ?? []).map((item, index) => {
                       const quantity = item.quantity ?? 1;
