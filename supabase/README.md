@@ -14,24 +14,28 @@ The pricing migration converts the starter catalog at Rp16,000 per USD. It sets 
 
 The inventory migration gives existing and new products 100 units by default. The admin dashboard is available at `/admin` to add products and edit stock and pricing. Checkout reserves stock atomically; stock is restored if payment fails or expires.
 
-## Configure Midtrans
+## Configure Midtrans Sandbox
 
-Set these Supabase Edge Function secrets in the Supabase dashboard or with the Supabase CLI. Never put the Midtrans Server Key in a `VITE_` variable or browser code.
+The checkout and payment notification flow is implemented with Midtrans Snap. Before testing, get the **Sandbox Server Key** from your Midtrans account. Do not use the Client Key here, and never put the Server Key in frontend code, a `VITE_` variable, or a committed `.env` file.
 
-- `MIDTRANS_SERVER_KEY`: Server Key from the Midtrans account.
-- `MIDTRANS_IS_PRODUCTION`: `false` for Sandbox, `true` for Production.
-- `SITE_URL`: public storefront URL, without a trailing slash.
+In Supabase Dashboard, open **Edge Functions > Secrets** and set:
 
-Supabase supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions.
+- `MIDTRANS_SERVER_KEY`: the Sandbox Server Key from Midtrans.
+- `MIDTRANS_IS_PRODUCTION`: `false` (the payment function then uses the Midtrans Sandbox API).
+- `SITE_URL`: the storefront's public URL, without a trailing slash.
 
-Deploy both functions:
+Supabase supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. The browser only needs the Supabase project URL and anon key as `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+
+Deploy both functions after setting the secrets:
 
 ```sh
 supabase functions deploy create-midtrans-payment
 supabase functions deploy midtrans-webhook
 ```
 
-Set the Midtrans payment notification URL to `https://<project-ref>.supabase.co/functions/v1/midtrans-webhook`. The order becomes `completed` only after a valid Midtrans `settlement` notification (or accepted `capture`). Configure the Supabase Auth site URL and email confirmation behavior for the storefront domain as well.
+In the Midtrans Sandbox dashboard, set the payment notification URL to `https://<project-ref>.supabase.co/functions/v1/midtrans-webhook`, replacing `<project-ref>` with the linked Supabase project's ref. The webhook validates each notification using the same Sandbox Server Key. The order becomes `completed` only after a valid `settlement` notification (or accepted `capture`); returning to the storefront alone does not confirm payment.
+
+Configure the Supabase Auth site URL and email confirmation behavior for the storefront domain as well. Once the storefront and secrets are configured, place a test order and complete it with a payment method and test credentials supported by Midtrans Sandbox.
 
 ## Grant admin access
 
