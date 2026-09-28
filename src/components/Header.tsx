@@ -37,6 +37,7 @@ export function Header({
     { label: 'Catalog', page: 'catalog' },
     { label: 'Bestsellers', page: 'catalog', params: { filter: 'bestseller' } },
     { label: 'New Arrivals', page: 'catalog', params: { filter: 'new' } },
+    { label: 'Riwayat Pesanan', page: 'orders' },
   ];
 
   return (

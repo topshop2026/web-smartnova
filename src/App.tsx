@@ -10,9 +10,10 @@ import { CatalogPage } from '@/pages/CatalogPage';
 import { ProductDetail } from '@/pages/ProductDetail';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { AccountPage } from '@/pages/AccountPage';
+import { OrderHistoryPage } from '@/pages/OrderHistoryPage';
 import { AdminPage } from '@/pages/AdminPage';
 
-type Page = 'home' | 'catalog' | 'checkout' | 'account' | 'admin';
+type Page = 'home' | 'catalog' | 'checkout' | 'account' | 'orders' | 'admin';
 
 function getPageFromLocation(): Page {
   if (new URLSearchParams(window.location.search).has('order_id')) return 'checkout';
@@ -20,6 +21,7 @@ function getPageFromLocation(): Page {
   if (path === '/catalog') return 'catalog';
   if (path === '/checkout') return 'checkout';
   if (path === '/account') return 'account';
+  if (path === '/orders') return 'orders';
   if (path === '/admin') return 'admin';
   return 'home';
 }
@@ -116,6 +118,13 @@ function AppContent() {
           <AccountPage
             onBack={() => handleNavigate('home')}
             onAdmin={() => handleNavigate('admin')}
+          />
+        )}
+
+        {page === 'orders' && (
+          <OrderHistoryPage
+            onBack={() => handleNavigate('home')}
+            onSignIn={() => handleNavigate('account')}
           />
         )}
 

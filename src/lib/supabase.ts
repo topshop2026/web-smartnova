@@ -67,6 +67,17 @@ export type CartItem = {
   unitPrice: number;
 };
 
+export type OrderItem = {
+  product_id?: string;
+  product_name?: string;
+  unit_price?: number;
+  days?: number;
+  features?: number;
+  quantity?: number;
+  product?: Pick<Product, 'name'>;
+  unitPrice?: number;
+};
+
 export type Order = {
   id: string;
   order_number: string;
@@ -75,6 +86,6 @@ export type Order = {
   total_amount: number;
   status: string;
   fulfillment_status: string;
-  items_json: CartItem[];
+  items_json: OrderItem[];
   created_at: string;
 };

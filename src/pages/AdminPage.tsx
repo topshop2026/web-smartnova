@@ -324,6 +324,26 @@ export function AdminPage({ onBack }: AdminPageProps) {
                     <div key={status.value} className={`h-1.5 rounded-full ${status.value === currentStatus.value || orderStatuses.findIndex((item) => item.value === status.value) < orderStatuses.findIndex((item) => item.value === currentStatus.value) ? 'bg-cyan-600' : 'bg-slate-200'}`} />
                   ))}
                 </div>
+                <ul className="mt-4 space-y-3 border-t border-slate-100 pt-3">
+                  {(order.items_json ?? []).map((item, index) => {
+                    const quantity = item.quantity ?? 1;
+                    const unitPrice = item.unit_price ?? item.unitPrice ?? 0;
+                    const productName = item.product_name ?? item.product?.name ?? 'Produk';
+                    return (
+                      <li key={`${item.product_id ?? productName}-${index}`} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 text-sm">
+                        <div>
+                          <p className="font-medium text-slate-800">{productName}</p>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {item.days ? `${item.days} hari` : 'Durasi standar'}
+                            {item.features ? ` · ${item.features} fitur` : ''}
+                            {` · Qty ${quantity}`}
+                          </p>
+                        </div>
+                        <span className="text-slate-600">{formatPrice(unitPrice * quantity)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             );
           })}
