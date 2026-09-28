@@ -15,7 +15,7 @@ export function CheckoutPage({ onBack, onAccount, onComplete }: CheckoutPageProp
   const { items, totalPrice, clearCart } = useCart();
   const { user, loading: authLoading } = useAuth();
   const userId = user?.id;
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', whatsappConsent: false });
   const [processing, setProcessing] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
@@ -72,12 +72,27 @@ export function CheckoutPage({ onBack, onAccount, onComplete }: CheckoutPageProp
       return;
     }
 
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    const customerPhone = phoneDigits.startsWith('0')
+      ? `62${phoneDigits.slice(1)}`
+      : phoneDigits;
+    if (!/^62\d{8,13}$/.test(customerPhone)) {
+      setError('Enter a valid WhatsApp number, for example 081234567890.');
+      return;
+    }
+    if (!formData.whatsappConsent) {
+      setError('Please agree to receive your payment confirmation on WhatsApp.');
+      return;
+    }
+
     setProcessing(true);
 
     try {
       const { data, error: paymentError } = await supabase.functions.invoke('create-midtrans-payment', {
         body: {
           customer_name: formData.name.trim(),
+          customer_phone: customerPhone,
+          whatsapp_consent: true,
           items: items.map((item) => ({
             product_id: item.product.id,
             days: item.days,
@@ -205,7 +220,7 @@ export function CheckoutPage({ onBack, onAccount, onComplete }: CheckoutPageProp
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ name: e.target.value })}
+                    onChange={(e) => setFormData((current) => ({ ...current, name: e.target.value }))}
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                     placeholder="John Doe"
                   />
@@ -213,6 +228,33 @@ export function CheckoutPage({ onBack, onAccount, onComplete }: CheckoutPageProp
                 <div className="flex flex-col justify-center rounded-lg bg-slate-50 px-4 py-3">
                   <span className="text-xs font-medium text-slate-500">Receipt email</span>
                   <span className="mt-1 text-sm font-semibold text-slate-800">{user.email}</span>
+                </div>
+                <div>
+                  <label htmlFor="checkout-whatsapp" className="mb-1.5 block text-sm font-medium text-slate-700">
+                    Nomor WhatsApp
+                  </label>
+                  <input
+                    id="checkout-whatsapp"
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    required
+                    value={formData.phone}
+                    onChange={(e) => setFormData((current) => ({ ...current, phone: e.target.value }))}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    placeholder="081234567890"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">Konfirmasi dikirim setelah pembayaran berhasil.</p>
+                  <label className="mt-3 flex items-start gap-2 text-xs text-slate-600">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={formData.whatsappConsent}
+                      onChange={(e) => setFormData((current) => ({ ...current, whatsappConsent: e.target.checked }))}
+                      className="mt-0.5 accent-blue-700"
+                    />
+                    <span>Saya setuju menerima konfirmasi pembayaran melalui WhatsApp.</span>
+                  </label>
                 </div>
               </div>
             </div>

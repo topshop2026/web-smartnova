@@ -45,8 +45,14 @@ Deno.serve(async (request) => {
 
     const payload = await request.json();
     const customerName = typeof payload.customer_name === 'string' ? payload.customer_name.trim() : '';
+    const phoneDigits = typeof payload.customer_phone === 'string'
+      ? payload.customer_phone.replace(/\D/g, '')
+      : '';
+    const customerPhone = phoneDigits.startsWith('0') ? `62${phoneDigits.slice(1)}` : phoneDigits;
     const requestedItems = payload.items as RequestedItem[];
-    if (!customerName || customerName.length > 100 || !Array.isArray(requestedItems)
+    if (!customerName || customerName.length > 100 || !/^62\d{8,13}$/.test(customerPhone)
+      || payload.whatsapp_consent !== true
+      || !Array.isArray(requestedItems)
       || requestedItems.length < 1 || requestedItems.length > 20) {
       return jsonResponse({ error: 'Invalid checkout details.' }, 400);
     }
@@ -112,6 +118,7 @@ Deno.serve(async (request) => {
       p_user_id: user.id,
       p_customer_email: user.email,
       p_customer_name: customerName,
+      p_customer_phone: customerPhone,
       p_total_amount: totalAmount,
       p_items_json: orderItems,
     });
@@ -139,7 +146,7 @@ Deno.serve(async (request) => {
         body: JSON.stringify({
           transaction_details: { order_id: orderNumber, gross_amount: totalAmount },
           item_details: midtransItems,
-          customer_details: { first_name: customerName, email: user.email },
+          customer_details: { first_name: customerName, email: user.email, phone: customerPhone },
           callbacks: { finish: `${siteBase}/?order_id=${encodeURIComponent(orderNumber)}` },
         }),
       });

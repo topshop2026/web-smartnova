@@ -11,9 +11,10 @@ import { ProductDetail } from '@/pages/ProductDetail';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { AccountPage } from '@/pages/AccountPage';
 import { OrderHistoryPage } from '@/pages/OrderHistoryPage';
+import { ChatPage } from '@/pages/ChatPage';
 import { AdminPage } from '@/pages/AdminPage';
 
-type Page = 'home' | 'catalog' | 'checkout' | 'account' | 'orders' | 'admin';
+type Page = 'home' | 'catalog' | 'checkout' | 'account' | 'orders' | 'chat' | 'admin';
 
 function getPageFromLocation(): Page {
   if (new URLSearchParams(window.location.search).has('order_id')) return 'checkout';
@@ -22,13 +23,16 @@ function getPageFromLocation(): Page {
   if (path === '/checkout') return 'checkout';
   if (path === '/account') return 'account';
   if (path === '/orders') return 'orders';
+  if (path === '/chat') return 'chat';
   if (path === '/admin') return 'admin';
   return 'home';
 }
 
 function AppContent() {
   const [page, setPage] = useState<Page>(getPageFromLocation);
-  const [pageParams, setPageParams] = useState<Record<string, string>>({});
+  const [pageParams, setPageParams] = useState<Record<string, string>>(() => ({
+    product_id: new URLSearchParams(window.location.search).get('product_id') ?? '',
+  }));
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -49,7 +53,9 @@ function AppContent() {
   useEffect(() => {
     const handlePopState = () => {
       setPage(getPageFromLocation());
-      setPageParams({});
+      setPageParams({
+        product_id: new URLSearchParams(window.location.search).get('product_id') ?? '',
+      });
       setSelectedProduct(null);
     };
     window.addEventListener('popstate', handlePopState);
@@ -61,7 +67,8 @@ function AppContent() {
     setPageParams(params);
     setSelectedProduct(null);
     const route = newPage === 'home' ? '/' : `/${newPage}`;
-    window.history.pushState({}, '', route);
+    const query = new URLSearchParams(params).toString();
+    window.history.pushState({}, '', query ? `${route}?${query}` : route);
   }, []);
 
   const handleAddToCart = useCallback(
@@ -74,6 +81,11 @@ function AppContent() {
 
   const handleProductClick = useCallback((product: Product) => {
     setSelectedProduct(product);
+  }, []);
+
+  const handleOpenProduct = useCallback(async (productId: string) => {
+    const { data } = await supabase.from('products').select('*').eq('id', productId).maybeSingle();
+    if (data) setSelectedProduct(data as Product);
   }, []);
 
   return (
@@ -91,6 +103,7 @@ function AppContent() {
           <HomePage
             onNavigate={handleNavigate}
             onAddToCart={handleAddToCart}
+            onChat={(product) => handleNavigate('chat', { product_id: product.id })}
             onProductClick={handleProductClick}
           />
         )}
@@ -98,6 +111,7 @@ function AppContent() {
         {page === 'catalog' && (
           <CatalogPage
             onAddToCart={handleAddToCart}
+            onChat={(product) => handleNavigate('chat', { product_id: product.id })}
             onProductClick={handleProductClick}
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -128,6 +142,15 @@ function AppContent() {
           />
         )}
 
+        {page === 'chat' && (
+          <ChatPage
+            productId={pageParams.product_id || undefined}
+            onBack={() => handleNavigate('home')}
+            onSignIn={() => handleNavigate('account')}
+            onProductOpen={(productId) => void handleOpenProduct(productId)}
+          />
+        )}
+
         {page === 'admin' && <AdminPage onBack={() => handleNavigate('home')} />}
       </main>
 
@@ -140,6 +163,7 @@ function AppContent() {
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
           onNavigate={(newPage) => handleNavigate(newPage)}
+          onChat={(product) => handleNavigate('chat', { product_id: product.id })}
         />
       )}
     </div>

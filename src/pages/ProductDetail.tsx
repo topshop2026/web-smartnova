@@ -11,6 +11,7 @@ import {
   TrendingUp,
   ArrowLeft,
   Send,
+  MessageCircle,
 } from 'lucide-react';
 import { supabase, type Product, type Review } from '@/lib/supabase';
 import { useCart } from '@/context/CartContext';
@@ -29,9 +30,10 @@ type ProductDetailProps = {
   product: Product;
   onClose: () => void;
   onNavigate: (page: string) => void;
+  onChat: (product: Product) => void;
 };
 
-export function ProductDetail({ product, onClose, onNavigate }: ProductDetailProps) {
+export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductDetailProps) {
   const { addToCart, setCartOpen } = useCart();
   const { user } = useAuth();
   const userId = user?.id;
@@ -288,11 +290,11 @@ export function ProductDetail({ product, onClose, onNavigate }: ProductDetailPro
                   )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={handleAddToCart}
                     disabled={outOfStock}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition ${
+                    className={`flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-xs font-semibold transition sm:text-sm ${
                       added
                         ? 'bg-emerald-500 text-white'
                         : outOfStock
@@ -306,16 +308,24 @@ export function ProductDetail({ product, onClose, onNavigate }: ProductDetailPro
                       </>
                     ) : (
                       <>
-                        <ShoppingCart size={18} /> Add to Cart
+                        <ShoppingCart size={16} /> Add to Cart
                       </>
                     )}
                   </button>
                   <button
                     onClick={handleBuyNow}
                     disabled={outOfStock}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-2 py-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
                   >
-                    Buy Now
+                    <Download size={16} /> Buy Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChat(product)}
+                    title={`Chat admin tentang ${product.name}`}
+                    className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-2 py-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-50 sm:text-sm"
+                  >
+                    <MessageCircle size={16} /> Chat
                   </button>
                 </div>
               </div>

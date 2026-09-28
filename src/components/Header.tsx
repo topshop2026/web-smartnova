@@ -38,6 +38,7 @@ export function Header({
     { label: 'Bestsellers', page: 'catalog', params: { filter: 'bestseller' } },
     { label: 'New Arrivals', page: 'catalog', params: { filter: 'new' } },
     { label: 'Riwayat Pesanan', page: 'orders' },
+    { label: 'Chat', page: 'chat' },
   ];
 
   return (

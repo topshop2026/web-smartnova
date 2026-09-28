@@ -7,6 +7,7 @@ import { formatPrice } from '@/lib/utils';
 
 type CatalogPageProps = {
   onAddToCart: (product: Product) => void;
+  onChat: (product: Product) => void;
   onProductClick: (product: Product) => void;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
@@ -18,6 +19,7 @@ type SortOption = 'popular' | 'newest' | 'price-low' | 'price-high' | 'rating';
 
 export function CatalogPage({
   onAddToCart,
+  onChat,
   onProductClick,
   searchQuery,
   setSearchQuery,
@@ -295,6 +297,7 @@ export function CatalogPage({
                   key={product.id}
                   product={product}
                   onAddToCart={onAddToCart}
+                  onChat={onChat}
                   onClick={onProductClick}
                 />
               ))}

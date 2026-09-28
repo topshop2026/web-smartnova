@@ -1,4 +1,4 @@
-import { ShoppingCart, Download, Eye } from 'lucide-react';
+import { ShoppingCart, Download, Eye, MessageCircle } from 'lucide-react';
 import type { Product } from '@/lib/supabase';
 import { formatPrice, calculateDiscount, formatNumber } from '@/lib/utils';
 import { StarRating } from './StarRating';
@@ -6,10 +6,11 @@ import { StarRating } from './StarRating';
 type ProductCardProps = {
   product: Product;
   onAddToCart: (product: Product) => void;
+  onChat: (product: Product) => void;
   onClick: (product: Product) => void;
 };
 
-export function ProductCard({ product, onAddToCart, onClick }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCardProps) {
   const discount = calculateDiscount(product.price, product.original_price);
   const outOfStock = product.stock <= 0;
 
@@ -111,6 +112,19 @@ export function ProductCard({ product, onAddToCart, onClick }: ProductCardProps)
             )}
           </div>
           <span className="text-xs text-slate-400">{formatNumber(product.sales_count)} sales</span>
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onChat(product);
+            }}
+            title={`Chat admin tentang ${product.name}`}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-50"
+          >
+            <MessageCircle size={14} /> Chat
+          </button>
         </div>
       </div>
     </div>

@@ -15,10 +15,11 @@ import { ProductCard } from '@/components/ProductCard';
 type HomePageProps = {
   onNavigate: (page: string, params?: Record<string, string>) => void;
   onAddToCart: (product: Product) => void;
+  onChat: (product: Product) => void;
   onProductClick: (product: Product) => void;
 };
 
-export function HomePage({ onNavigate, onAddToCart, onProductClick }: HomePageProps) {
+export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: HomePageProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
@@ -195,6 +196,7 @@ export function HomePage({ onNavigate, onAddToCart, onProductClick }: HomePagePr
                 key={product.id}
                 product={product}
                 onAddToCart={onAddToCart}
+                onChat={onChat}
                 onClick={onProductClick}
               />
             ))}
@@ -272,6 +274,7 @@ export function HomePage({ onNavigate, onAddToCart, onProductClick }: HomePagePr
                   key={product.id}
                   product={product}
                   onAddToCart={onAddToCart}
+                  onChat={onChat}
                   onClick={onProductClick}
                 />
               ))}
@@ -304,6 +307,7 @@ export function HomePage({ onNavigate, onAddToCart, onProductClick }: HomePagePr
                 key={product.id}
                 product={product}
                 onAddToCart={onAddToCart}
+                onChat={onChat}
                 onClick={onProductClick}
               />
             ))}
