@@ -101,11 +101,23 @@ export function CheckoutPage({ onBack, onAccount, onComplete }: CheckoutPageProp
           })),
         },
       });
-      if (paymentError) throw paymentError;
+      if (paymentError) {
+        const response = (paymentError as Error & { context?: unknown }).context;
+        if (response instanceof Response) {
+          const responseBody = await response.clone().json().catch(() => null) as { error?: unknown; code?: unknown } | null;
+          if (typeof responseBody?.error === 'string') {
+            const code = typeof responseBody.code === 'string' ? ` (${responseBody.code})` : '';
+            throw new Error(`${responseBody.error}${code}`);
+          }
+        }
+        throw paymentError;
+      }
       if (!data?.redirect_url) throw new Error('Midtrans did not return a payment URL.');
       window.location.assign(data.redirect_url);
-    } catch {
-      setError('Unable to start payment. Please check your connection and try again.');
+    } catch (paymentFailure) {
+      setError(paymentFailure instanceof Error
+        ? paymentFailure.message
+        : 'Unable to start payment. Please check your connection and try again.');
     } finally {
       setProcessing(false);
     }

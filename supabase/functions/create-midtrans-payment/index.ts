@@ -127,7 +127,10 @@ Deno.serve(async (request) => {
         return jsonResponse({ error: 'One or more products no longer have enough stock.' }, 409);
       }
       console.error('Unable to reserve stock and create order:', orderError?.message);
-      return jsonResponse({ error: 'Unable to create order.' }, 500);
+      return jsonResponse({
+        error: 'Unable to create order.',
+        code: orderError?.code ?? 'ORDER_NOT_CREATED',
+      }, 500);
     }
 
     const apiBase = isProduction
