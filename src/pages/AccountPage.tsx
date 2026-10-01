@@ -36,7 +36,7 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
       : mode === 'signin'
         ? await signIn(email.trim(), password)
         : mode === 'forgot'
-          ? await resetPassword(email.trim(), `${window.location.origin}/account?mode=reset`)
+          ? await resetPassword(email.trim(), 'https://smartnova.site/account?mode=reset')
           : await updatePassword(password);
 
     if (result.error) {
