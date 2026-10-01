@@ -8,10 +8,13 @@ type AccountPageProps = {
 };
 
 export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
-  const { user, loading, signIn, signUp, signOut } = useAuth();
-  const [isRegistering, setIsRegistering] = useState(false);
+  const { user, loading, signIn, signUp, resetPassword, updatePassword, signOut } = useAuth();
+  const [mode, setMode] = useState<'signin' | 'register' | 'forgot' | 'reset' | 'reset-complete'>(
+    () => new URLSearchParams(window.location.search).get('mode') === 'reset' ? 'reset' : 'signin'
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -22,14 +25,29 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
     setNotice('');
     setSubmitting(true);
 
-    const result = isRegistering
+    if (mode === 'reset' && password !== confirmPassword) {
+      setError('Passwords do not match.');
+      setSubmitting(false);
+      return;
+    }
+
+    const result = mode === 'register'
       ? await signUp(email.trim(), password)
-      : await signIn(email.trim(), password);
+      : mode === 'signin'
+        ? await signIn(email.trim(), password)
+        : mode === 'forgot'
+          ? await resetPassword(email.trim(), `${window.location.origin}/account?mode=reset`)
+          : await updatePassword(password);
 
     if (result.error) {
       setError(result.error.message);
-    } else if (isRegistering) {
+    } else if (mode === 'register') {
       setNotice('Registration received. Check your email if confirmation is enabled.');
+    } else if (mode === 'forgot') {
+      setNotice('If an account exists for this email, a password reset link has been sent.');
+    } else if (mode === 'reset') {
+      window.history.replaceState({}, '', '/account');
+      setMode('reset-complete');
     }
     setSubmitting(false);
   };
@@ -45,7 +63,18 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
       </button>
 
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        {user ? (
+        {mode === 'reset-complete' ? (
+          <>
+            <h1 className="text-xl font-semibold text-slate-900">Password updated</h1>
+            <p role="status" className="mt-2 text-sm text-emerald-700">Your password has been reset successfully.</p>
+            <button
+              onClick={() => setMode('signin')}
+              className="mt-5 w-full rounded-lg bg-blue-700 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
+            >
+              Continue
+            </button>
+          </>
+        ) : user && mode !== 'reset' ? (
           <>
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
               <UserRound size={24} />
@@ -74,35 +103,57 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
         ) : (
           <>
             <h1 className="text-xl font-semibold text-slate-900">
-              {isRegistering ? 'Create account' : 'Sign in'}
+              {mode === 'register' ? 'Create account' : mode === 'forgot' ? 'Forgot password' : mode === 'reset' ? 'Reset password' : 'Sign in'}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Sign in to check out and manage your product reviews.
+              {mode === 'forgot'
+                ? 'Enter your email address and we will send you a reset link.'
+                : mode === 'reset'
+                  ? 'Choose a new password for your account.'
+                  : 'Sign in to check out and manage your product reviews.'}
             </p>
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <label className="block text-sm font-medium text-slate-700">
-                Email
-                <input
-                  required
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
-                />
-              </label>
-              <label className="block text-sm font-medium text-slate-700">
-                Password
-                <input
-                  required
-                  type="password"
-                  minLength={8}
-                  autoComplete={isRegistering ? 'new-password' : 'current-password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
-                />
-              </label>
+              {mode !== 'reset' && (
+                <label className="block text-sm font-medium text-slate-700">
+                  Email
+                  <input
+                    required
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
+                  />
+                </label>
+              )}
+              {(mode === 'signin' || mode === 'register' || mode === 'reset') && (
+                <label className="block text-sm font-medium text-slate-700">
+                  {mode === 'reset' ? 'New password' : 'Password'}
+                  <input
+                    required
+                    type="password"
+                    minLength={8}
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
+                  />
+                </label>
+              )}
+              {mode === 'reset' && (
+                <label className="block text-sm font-medium text-slate-700">
+                  Confirm new password
+                  <input
+                    required
+                    type="password"
+                    minLength={8}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 font-normal outline-none focus:border-blue-500"
+                  />
+                </label>
+              )}
               {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
               {notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
               <button
@@ -110,19 +161,33 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
                 disabled={submitting}
                 className="w-full rounded-lg bg-blue-700 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
               >
-                {submitting ? 'Please wait...' : isRegistering ? 'Create account' : 'Sign in'}
+                {submitting ? 'Please wait...' : mode === 'register' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : mode === 'reset' ? 'Update password' : 'Sign in'}
               </button>
             </form>
-            <button
-              onClick={() => {
-                setIsRegistering(!isRegistering);
-                setError('');
-                setNotice('');
-              }}
-              className="mt-4 w-full text-sm font-medium text-blue-700 hover:text-blue-800"
-            >
-              {isRegistering ? 'Already registered? Sign in' : 'New here? Create an account'}
-            </button>
+            {mode === 'signin' && (
+              <>
+                <button
+                  onClick={() => { setMode('forgot'); setError(''); setNotice(''); }}
+                  className="mt-4 w-full text-sm font-medium text-blue-700 hover:text-blue-800"
+                >
+                  Forgot password?
+                </button>
+                <button
+                  onClick={() => { setMode('register'); setError(''); setNotice(''); }}
+                  className="mt-3 w-full text-sm font-medium text-blue-700 hover:text-blue-800"
+                >
+                  New here? Create an account
+                </button>
+              </>
+            )}
+            {(mode === 'register' || mode === 'forgot' || mode === 'reset') && (
+              <button
+                onClick={() => { setMode('signin'); setError(''); setNotice(''); }}
+                className="mt-4 w-full text-sm font-medium text-blue-700 hover:text-blue-800"
+              >
+                Back to sign in
+              </button>
+            )}
           </>
         )}
       </section>
