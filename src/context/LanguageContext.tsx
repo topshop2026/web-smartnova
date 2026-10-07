@@ -248,6 +248,10 @@ const translations: Record<string, string> = {
   'Add to Cart': 'Tambah ke Keranjang',
   'Buy Now': 'Beli Sekarang',
   'Customer Reviews': 'Ulasan Pelanggan',
+  'Editorial testimonials': 'Testimoni editorial',
+  'Editorial testimonial': 'Testimoni editorial',
+  'Editorial testimonials could not be loaded.':
+    'Testimoni editorial tidak dapat dimuat.',
 };
 
 const reverseTranslations = Object.fromEntries(

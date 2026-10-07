@@ -62,6 +62,14 @@ export type Review = {
   created_at: string;
 };
 
+export type EditorialTestimonial = {
+  id: string;
+  product_id: string;
+  author_name: string;
+  quote: string;
+  created_at: string;
+};
+
 export type CartItem = {
   product: Product;
   quantity: number;

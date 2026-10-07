@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, CheckCircle2, FolderPen, PackagePlus, Plus, Save, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { supabase, type Category, type Order, type Product } from '@/lib/supabase';
+import { supabase, type Category, type EditorialTestimonial, type Order, type Product } from '@/lib/supabase';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { getOrderStatus, orderStatuses } from '@/lib/orderStatus';
 import { formatPrice } from '@/lib/utils';
@@ -17,6 +17,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [testimonials, setTestimonials] = useState<EditorialTestimonial[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -27,6 +28,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+  const [addingTestimonial, setAddingTestimonial] = useState(false);
+  const [deletingTestimonialId, setDeletingTestimonialId] = useState<string | null>(null);
+  const [testimonialForm, setTestimonialForm] = useState({ product_id: '', author_name: '', quote: '' });
   const [message, setMessage] = useState('');
   const [newCategory, setNewCategory] = useState({ name: '', slug: '', description: '', icon: 'Package' });
   const [newProduct, setNewProduct] = useState({
@@ -57,12 +61,17 @@ export function AdminPage({ onBack }: AdminPageProps) {
         supabase.from('products').select('*').order('name'),
         supabase.from('categories').select('*').order('display_order'),
       ]);
-      const orderResult = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+      const [orderResult, testimonialResult] = await Promise.all([
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('editorial_testimonials').select('*').order('created_at', { ascending: false }),
+      ]);
       if (productResult.error) setMessage(productResult.error.message);
       if (orderResult.error) setMessage(orderResult.error.message);
+      if (testimonialResult.error) setMessage(testimonialResult.error.message);
       setProducts((productResult.data as Product[] | null) ?? []);
       setCategories((categoryResult.data as Category[] | null) ?? []);
       setOrders((orderResult.data as Order[] | null) ?? []);
+      setTestimonials((testimonialResult.data as EditorialTestimonial[] | null) ?? []);
       setLoading(false);
     };
     void loadDashboard();
@@ -85,6 +94,53 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setMessage(`Order ${order.order_number} status updated.`);
     }
     setSavingOrderId(null);
+  };
+
+  const createEditorialTestimonial = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const authorName = testimonialForm.author_name.trim();
+    const quote = testimonialForm.quote.trim();
+    if (!testimonialForm.product_id || !authorName || !quote) {
+      setMessage('Select a product and enter the editorial attribution and testimonial.');
+      return;
+    }
+
+    setAddingTestimonial(true);
+    setMessage('');
+    const { data, error } = await supabase
+      .from('editorial_testimonials')
+      .insert({
+        product_id: testimonialForm.product_id,
+        author_name: authorName,
+        quote,
+      })
+      .select('*')
+      .single();
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setTestimonials((current) => [data as EditorialTestimonial, ...current]);
+      setTestimonialForm({ product_id: '', author_name: '', quote: '' });
+      setMessage('Editorial testimonial added.');
+    }
+    setAddingTestimonial(false);
+  };
+
+  const deleteEditorialTestimonial = async (testimonial: EditorialTestimonial) => {
+    if (!window.confirm('Delete this editorial testimonial?')) return;
+    setDeletingTestimonialId(testimonial.id);
+    setMessage('');
+    const { error } = await supabase
+      .from('editorial_testimonials')
+      .delete()
+      .eq('id', testimonial.id);
+    if (error) {
+      setMessage(error.message);
+    } else {
+      setTestimonials((current) => current.filter((item) => item.id !== testimonial.id));
+      setMessage('Editorial testimonial deleted.');
+    }
+    setDeletingTestimonialId(null);
   };
 
   const updateProduct = (productId: string, changes: Partial<Product>) => {
@@ -317,6 +373,88 @@ export function AdminPage({ onBack }: AdminPageProps) {
       </div>
 
       {message && <p role="status" className="mb-4 text-sm text-blue-700">{message}</p>}
+      <section className="mb-7 rounded-xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm">
+        <div className="mb-4">
+          <h2 className="text-base font-semibold text-amber-950">Editorial testimonials</h2>
+          <p className="mt-1 text-sm text-amber-800">
+            These promotional statements are shown separately from verified customer reviews and are labeled “Editorial testimonial.”
+          </p>
+        </div>
+        <form onSubmit={createEditorialTestimonial} className="grid gap-3 md:grid-cols-2">
+          <label className="text-xs font-medium text-slate-600">
+            Product
+            <select
+              required
+              value={testimonialForm.product_id}
+              onChange={(event) => setTestimonialForm({ ...testimonialForm, product_id: event.target.value })}
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+            >
+              <option value="">Choose a product</option>
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>{product.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-medium text-slate-600">
+            Editorial attribution
+            <input
+              required
+              maxLength={120}
+              value={testimonialForm.author_name}
+              onChange={(event) => setTestimonialForm({ ...testimonialForm, author_name: event.target.value })}
+              placeholder="SmartNova Editorial Team"
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="text-xs font-medium text-slate-600 md:col-span-2">
+            Promotional statement
+            <textarea
+              required
+              maxLength={1000}
+              rows={3}
+              value={testimonialForm.quote}
+              onChange={(event) => setTestimonialForm({ ...testimonialForm, quote: event.target.value })}
+              className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <div className="md:col-span-2">
+            <button
+              type="submit"
+              disabled={addingTestimonial}
+              className="flex items-center gap-2 rounded-md bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50"
+            >
+              <Plus size={16} /> {addingTestimonial ? 'Adding...' : 'Add editorial testimonial'}
+            </button>
+          </div>
+        </form>
+        <div className="mt-4 space-y-2">
+          {testimonials.map((testimonial) => {
+            const testimonialProduct = products.find((product) => product.id === testimonial.product_id);
+            return (
+              <article key={testimonial.id} className="flex items-start justify-between gap-4 rounded-lg border border-amber-100 bg-white p-3">
+                <div>
+                  <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-900">
+                    Editorial testimonial
+                  </span>
+                  <p className="mt-2 text-sm text-slate-700">“{testimonial.quote}”</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {testimonial.author_name} · {testimonialProduct?.name ?? 'Product'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void deleteEditorialTestimonial(testimonial)}
+                  disabled={deletingTestimonialId === testimonial.id}
+                  aria-label={`Delete editorial testimonial by ${testimonial.author_name}`}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      </section>
       <section className="mb-7 rounded-xl border border-cyan-100 bg-cyan-50/60 p-5 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-semibold text-cyan-900">
           <PackagePlus size={17} /> Status Order

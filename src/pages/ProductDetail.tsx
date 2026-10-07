@@ -13,7 +13,7 @@ import {
   Send,
   MessageCircle,
 } from 'lucide-react';
-import { supabase, type Product, type Review } from '@/lib/supabase';
+import { supabase, type EditorialTestimonial, type Product, type Review } from '@/lib/supabase';
 import { useCart } from '@/context/CartContext';
 import { StarRating } from '@/components/StarRating';
 import { useAuth } from '@/context/AuthContext';
@@ -43,6 +43,8 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
   const localizedProduct = getLocalizedProduct(product, language);
   const userId = user?.id;
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [editorialTestimonials, setEditorialTestimonials] = useState<EditorialTestimonial[]>([]);
+  const [testimonialError, setTestimonialError] = useState('');
   const [loading, setLoading] = useState(true);
   const [hasCompletedPurchase, setHasCompletedPurchase] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
@@ -74,9 +76,20 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
             .eq('status', 'completed')
             .contains('items_json', [{ product_id: product.id }])
         : Promise.resolve({ count: 0, data: null, error: null });
-      const [reviewResult, purchaseResult] = await Promise.all([reviewRequest, purchaseRequest]);
+      const testimonialRequest = supabase
+        .from('editorial_testimonials')
+        .select('*')
+        .eq('product_id', product.id)
+        .order('created_at', { ascending: false });
+      const [reviewResult, purchaseResult, testimonialResult] = await Promise.all([
+        reviewRequest,
+        purchaseRequest,
+        testimonialRequest,
+      ]);
       if (!active) return;
       setReviews(reviewResult.data || []);
+      setEditorialTestimonials((testimonialResult.data as EditorialTestimonial[] | null) ?? []);
+      setTestimonialError(testimonialResult.error?.message ?? '');
       setHasReviewed((reviewResult.data || []).some((review) => review.user_id === userId));
       setHasCompletedPurchase((purchaseResult.count ?? 0) > 0);
       setLoading(false);
@@ -497,6 +510,33 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               </div>
             )}
           </div>
+
+          {testimonialError ? (
+            <p role="alert" className="border-t border-slate-200 p-6 text-sm text-rose-700">
+              {t('Editorial testimonials could not be loaded.')}
+            </p>
+          ) : editorialTestimonials.length > 0 ? (
+            <section className="border-t border-amber-200 bg-amber-50/50 p-6">
+              <h2 className="mb-4 text-lg font-bold text-slate-900">
+                {t('Editorial testimonials')}
+              </h2>
+              <div className="space-y-3">
+                {editorialTestimonials.map((testimonial) => (
+                  <article key={testimonial.id} className="rounded-xl border border-amber-200 bg-white p-4">
+                    <span className="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-900">
+                      {t('Editorial testimonial')}
+                    </span>
+                    <blockquote className="mt-3 text-sm leading-relaxed text-slate-700">
+                      “{testimonial.quote}”
+                    </blockquote>
+                    <p className="mt-3 text-sm font-semibold text-slate-900">
+                      {testimonial.author_name}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {/* Back button */}
           <div className="border-t border-slate-200 p-4">

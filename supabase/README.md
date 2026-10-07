@@ -18,6 +18,8 @@ Product translations add optional English names and descriptions. Apply migratio
 
 The product image gallery migration adds support for a main image and multiple additional image URLs per product. Apply it with `supabase db push`. Admins can edit the main image URL and add additional public image URLs (one per line) for new and existing products; customers can browse the gallery from the product detail view.
 
+Editorial testimonials can be added by admins from the admin dashboard. They are stored separately from purchase-verified customer reviews and are displayed with an explicit “Editorial testimonial” label. Apply the migration with `supabase db push`.
+
 The payment notification migration stores the customer's WhatsApp number and consent timestamp. Checkout requires the customer to opt in before a WhatsApp confirmation can be sent.
 
 ## Configure Midtrans Sandbox
