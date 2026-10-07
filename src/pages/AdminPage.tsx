@@ -109,6 +109,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
       description_en: product.description_en?.trim() || null,
       image_url: product.image_url?.trim() || null,
       image_urls: imageUrls,
+      category_id: product.category_id || null,
       price: product.price,
       feature_price: product.feature_price,
       duration_prices: product.duration_prices,
@@ -581,6 +582,21 @@ export function AdminPage({ onBack }: AdminPageProps) {
                   onChange={(event) => updateProduct(product.id, { stock: Number(event.target.value) })}
                   className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900"
                 />
+              </label>
+              <label className="text-xs font-medium text-slate-600">
+                Category
+                <select
+                  value={product.category_id ?? ''}
+                  onChange={(event) => updateProduct(product.id, {
+                    category_id: event.target.value || null,
+                  })}
+                  className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-900"
+                >
+                  <option value="">No category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
               </label>
               <fieldset>
                 <legend className="mb-1.5 text-xs font-medium text-slate-600">Rush surcharge by delivery time</legend>
