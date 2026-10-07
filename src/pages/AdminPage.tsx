@@ -173,6 +173,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
       image_url: product.image_url?.trim() || null,
       image_urls: imageUrls,
       category_id: product.category_id || null,
+      file_type: product.file_type?.trim() || null,
+      tags: (product.tags ?? []).map((tag) => tag.trim()).filter(Boolean),
       price: product.price,
       feature_price: product.feature_price,
       duration_prices: product.duration_prices,
@@ -805,7 +807,25 @@ export function AdminPage({ onBack }: AdminPageProps) {
                     className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
                   />
                 </label>
-                <span className="hidden md:block" aria-hidden="true" />
+                <label className="text-xs font-medium text-slate-600">
+                  File type
+                  <input
+                    value={product.file_type ?? ''}
+                    onChange={(event) => updateProduct(product.id, { file_type: event.target.value })}
+                    placeholder="ZIP, PDF, FIG..."
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-medium text-slate-600">
+                  Tags (comma separated)
+                  <input
+                    value={(product.tags ?? []).join(', ')}
+                    onChange={(event) => updateProduct(product.id, {
+                      tags: event.target.value.split(',').map((tag) => tag.trim()).filter(Boolean),
+                    })}
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
+                  />
+                </label>
                 <label className="text-xs font-medium text-slate-600">
                   Description (Indonesian)
                   <textarea
