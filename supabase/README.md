@@ -14,6 +14,8 @@ The pricing migration converts the starter catalog at Rp16,000 per USD. It sets 
 
 The inventory migration gives existing and new products 100 units by default. The admin dashboard is available at `/admin` to add products and edit stock and pricing. Checkout reserves stock atomically; stock is restored if payment fails or expires.
 
+Product translations add optional English names and descriptions. Apply migrations with `supabase db push`, then enter English copy for each product in the admin dashboard. English storefront pages use the English copy when present and fall back to the Indonesian content otherwise.
+
 The payment notification migration stores the customer's WhatsApp number and consent timestamp. Checkout requires the customer to opt in before a WhatsApp confirmation can be sent.
 
 ## Configure Midtrans Sandbox

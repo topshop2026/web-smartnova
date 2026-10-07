@@ -11,6 +11,7 @@ type RequestedItem = {
 type ProductPricing = {
   id: string;
   name: string;
+  name_en: string | null;
   price: number;
   feature_price: number;
   duration_prices: { days: number; surcharge: number }[];
@@ -44,6 +45,7 @@ Deno.serve(async (request) => {
     if (authError || !user?.email) return jsonResponse({ error: 'Invalid account session.' }, 401);
 
     const payload = await request.json();
+    const language = payload.language === 'en' ? 'en' : 'id';
     const customerName = typeof payload.customer_name === 'string' ? payload.customer_name.trim() : '';
     const phoneDigits = typeof payload.customer_phone === 'string'
       ? payload.customer_phone.replace(/\D/g, '')
@@ -63,7 +65,7 @@ Deno.serve(async (request) => {
     });
     const { data: productRows, error: productError } = await adminClient
       .from('products')
-      .select('id, name, price, feature_price, duration_prices')
+      .select('id, name, name_en, price, feature_price, duration_prices')
       .in('id', productIds);
     if (productError || !productRows || productRows.length !== productIds.length) {
       return jsonResponse({ error: 'One or more products are unavailable.' }, 400);
@@ -95,6 +97,7 @@ Deno.serve(async (request) => {
       orderItems.push({
         product_id: product.id,
         product_name: product.name,
+        product_name_en: product.name_en,
         unit_price: unitPrice,
         days,
         features,
@@ -104,7 +107,7 @@ Deno.serve(async (request) => {
         id: product.id,
         price: unitPrice,
         quantity,
-        name: `${product.name} (${days} hari, ${features} fitur)`.slice(0, 50),
+        name: `${language === 'en' ? product.name_en || product.name : product.name} (${days} ${language === 'en' ? 'days' : 'hari'}, ${features} ${language === 'en' ? 'features' : 'fitur'})`.slice(0, 50),
       });
     }
 

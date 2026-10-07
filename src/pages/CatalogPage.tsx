@@ -4,6 +4,7 @@ import { supabase, type Product, type Category } from '@/lib/supabase';
 import { getCategoryIcon, isCategoryIconUrl } from '@/lib/icons';
 import { ProductCard } from '@/components/ProductCard';
 import { formatPrice } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
 
 type CatalogPageProps = {
   onAddToCart: (product: Product) => void;
@@ -26,6 +27,7 @@ export function CatalogPage({
   initialCategory,
   initialFilter,
 }: CatalogPageProps) {
+  const { language, t } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export function CatalogPage({
 
     if (searchQuery) {
       query = query.or(
-        `name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`
+        `name.ilike.%${searchQuery}%,name_en.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,description_en.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`
       );
     }
 
@@ -113,19 +115,19 @@ export function CatalogPage({
 
   const priceOptions = [
     { label: 'All Prices', value: 'all' },
-    { label: `Under ${formatPrice(250000)}`, value: 'under-250000' },
+    { label: 'Under {price}', price: formatPrice(250000), value: 'under-250000' },
     { label: `${formatPrice(250000)} - ${formatPrice(500000)}`, value: '250000-500000' },
     { label: `${formatPrice(500000)} - ${formatPrice(1000000)}`, value: '500000-1000000' },
-    { label: `Over ${formatPrice(1000000)}`, value: 'over-1000000' },
+    { label: 'Over {price}', price: formatPrice(1000000), value: 'over-1000000' },
   ];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">Product Catalog</h1>
+        <h1 className="text-3xl font-bold text-slate-900">{t('Product Catalog')}</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Browse our collection of premium digital products
+          {t('Browse our collection of premium digital products')}
         </p>
       </div>
 
@@ -141,7 +143,7 @@ export function CatalogPage({
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            {btn.label}
+            {t(btn.label)}
           </button>
         ))}
 
@@ -153,7 +155,7 @@ export function CatalogPage({
           >
             {sortOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(opt.label)}
               </option>
             ))}
           </select>
@@ -163,7 +165,7 @@ export function CatalogPage({
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 lg:hidden"
           >
             <SlidersHorizontal size={16} />
-            Filters
+            {t('Filters')}
           </button>
         </div>
       </div>
@@ -176,7 +178,7 @@ export function CatalogPage({
           <div className="sticky top-24 space-y-6 rounded-xl border border-slate-200 bg-white p-5">
             {/* Categories */}
             <div>
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">Categories</h3>
+              <h3 className="mb-3 text-sm font-semibold text-slate-900">{t('Categories')}</h3>
               <div className="space-y-1">
                 <button
                   onClick={() => setSelectedCategory(null)}
@@ -186,7 +188,7 @@ export function CatalogPage({
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
-                  All Categories
+                  {t('All Categories')}
                 </button>
                 {categories.map((cat) => {
                   const Icon = getCategoryIcon(cat.icon);
@@ -214,7 +216,7 @@ export function CatalogPage({
 
             {/* Price */}
             <div className="border-t border-slate-100 pt-4">
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">Price Range</h3>
+              <h3 className="mb-3 text-sm font-semibold text-slate-900">{t('Price Range')}</h3>
               <div className="space-y-1">
                 {priceOptions.map((opt) => (
                   <button
@@ -226,7 +228,9 @@ export function CatalogPage({
                         : 'text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    {opt.label}
+                    {opt.price
+                      ? t(opt.label).replace('{price}', opt.price)
+                      : t(opt.label)}
                   </button>
                 ))}
               </div>
@@ -242,7 +246,7 @@ export function CatalogPage({
                 className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
                 <X size={14} />
-                Clear Filters
+                {t('Clear Filters')}
               </button>
             )}
           </div>
@@ -253,19 +257,23 @@ export function CatalogPage({
           {searchQuery && (
             <div className="mb-4 flex items-center gap-2 text-sm text-slate-600">
               <Search size={16} />
-              Showing results for "<span className="font-semibold">{searchQuery}</span>"
+              {t('Showing results for')} "<span className="font-semibold">{searchQuery}</span>"
               <button
                 onClick={() => setSearchQuery('')}
                 className="text-blue-600 hover:underline"
               >
-                Clear
+                {t('Clear')}
               </button>
             </div>
           )}
 
           <div className="mb-4 flex items-center justify-between">
             <p className="text-sm text-slate-500">
-              {loading ? 'Loading...' : `${products.length} product${products.length !== 1 ? 's' : ''} found`}
+              {loading
+                ? t('Loading...')
+                : language === 'id'
+                  ? `${products.length} produk ditemukan`
+                  : `${products.length} product${products.length !== 1 ? 's' : ''} found`}
             </p>
           </div>
 
@@ -285,9 +293,9 @@ export function CatalogPage({
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
                 <Download size={32} className="text-slate-300" />
               </div>
-              <h3 className="mt-4 text-lg font-semibold text-slate-900">No products found</h3>
+              <h3 className="mt-4 text-lg font-semibold text-slate-900">{t('No products found')}</h3>
               <p className="mt-1 text-sm text-slate-500">
-                Try adjusting your filters or search terms
+                {t('Try adjusting your filters or search terms')}
               </p>
             </div>
           ) : (

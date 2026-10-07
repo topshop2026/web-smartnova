@@ -13,6 +13,7 @@ import { AccountPage } from '@/pages/AccountPage';
 import { OrderHistoryPage } from '@/pages/OrderHistoryPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { AdminPage } from '@/pages/AdminPage';
+import { LanguageProvider } from '@/context/LanguageContext';
 
 type Page = 'home' | 'catalog' | 'checkout' | 'account' | 'orders' | 'chat' | 'admin';
 
@@ -172,10 +173,12 @@ function AppContent() {
 
 export default function App() {
   return (
-    <CartProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </CartProvider>
+    <LanguageProvider>
+      <CartProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </CartProvider>
+    </LanguageProvider>
   );
 }

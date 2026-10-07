@@ -11,6 +11,7 @@ import {
 import { supabase, type Product, type Category } from '@/lib/supabase';
 import { getCategoryIcon, isCategoryIconUrl } from '@/lib/icons';
 import { ProductCard } from '@/components/ProductCard';
+import { useLanguage } from '@/context/LanguageContext';
 
 type HomePageProps = {
   onNavigate: (page: string, params?: Record<string, string>) => void;
@@ -20,6 +21,7 @@ type HomePageProps = {
 };
 
 export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: HomePageProps) {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
@@ -73,23 +75,23 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-slate-300 backdrop-blur-sm">
               <Sparkles size={14} className="text-amber-400" />
-              Over {stats.products}+ premium digital products
+              {t('Over {count}+ premium digital products').replace('{count}', String(stats.products))}
             </div>
             <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Premium Digital Products
+              {t('Premium Digital Products')}
               <span className="block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                for Creators & Builders
+                {t('for Creators & Builders')}
               </span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">
-              Discover thousands of high-quality templates, UI kits, courses, graphics, and software. Download instantly and elevate your projects today.
+              {t('Discover thousands of high-quality templates, UI kits, courses, graphics, and software. Download instantly and elevate your projects today.')}
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
                 onClick={() => onNavigate('catalog')}
                 className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/30"
               >
-                Browse Products
+                {t('Browse Products')}
                 <ArrowRight size={18} />
               </button>
               <button
@@ -97,7 +99,7 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
                 className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-6 py-3 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/10"
               >
                 <TrendingUp size={18} className="text-amber-400" />
-                View Bestsellers
+                {t('View Bestsellers')}
               </button>
             </div>
 
@@ -115,7 +117,7 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
                 >
                   <badge.icon size={20} className="text-blue-400" />
                   <span className="text-xs font-semibold text-white">{badge.value}</span>
-                  <span className="text-xs text-slate-400">{badge.label}</span>
+                  <span className="text-xs text-slate-400">{t(badge.label)}</span>
                 </div>
               ))}
             </div>
@@ -127,14 +129,14 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-end justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Browse by Category</h2>
-            <p className="mt-1 text-sm text-slate-500">Find exactly what you need</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t('Browse by Category')}</h2>
+            <p className="mt-1 text-sm text-slate-500">{t('Find exactly what you need')}</p>
           </div>
           <button
             onClick={() => onNavigate('catalog')}
             className="hidden items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 sm:flex"
           >
-            View All <ArrowRight size={16} />
+            {t('View All')} <ArrowRight size={16} />
           </button>
         </div>
 
@@ -167,14 +169,14 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-end justify-between">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Featured Products</h2>
-            <p className="mt-1 text-sm text-slate-500">Hand-picked by our team</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t('Featured Products')}</h2>
+            <p className="mt-1 text-sm text-slate-500">{t('Hand-picked by our team')}</p>
           </div>
           <button
             onClick={() => onNavigate('catalog', { filter: 'featured' })}
             className="hidden items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 sm:flex"
           >
-            View All <ArrowRight size={16} />
+            {t('View All')} <ArrowRight size={16} />
           </button>
         </div>
 
@@ -242,8 +244,8 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
               >
                 <item.icon size={24} />
               </div>
-              <h3 className="text-base font-semibold text-slate-900">{item.title}</h3>
-              <p className="text-sm leading-relaxed text-slate-500">{item.desc}</p>
+              <h3 className="text-base font-semibold text-slate-900">{t(item.title)}</h3>
+              <p className="text-sm leading-relaxed text-slate-500">{t(item.desc)}</p>
             </div>
           ))}
         </div>
@@ -257,15 +259,15 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
               <div>
                 <div className="flex items-center gap-2">
                   <TrendingUp size={22} className="text-amber-500" />
-                  <h2 className="text-2xl font-bold text-slate-900">Bestsellers</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">{t('Bestsellers')}</h2>
                 </div>
-                <p className="mt-1 text-sm text-slate-500">Our most popular products</p>
+                <p className="mt-1 text-sm text-slate-500">{t('Our most popular products')}</p>
               </div>
               <button
                 onClick={() => onNavigate('catalog', { filter: 'bestseller' })}
                 className="hidden items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 sm:flex"
               >
-                View All <ArrowRight size={16} />
+                {t('View All')} <ArrowRight size={16} />
               </button>
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -290,15 +292,15 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
             <div>
               <div className="flex items-center gap-2">
                 <Sparkles size={22} className="text-emerald-500" />
-                <h2 className="text-2xl font-bold text-slate-900">New Arrivals</h2>
+                <h2 className="text-2xl font-bold text-slate-900">{t('New Arrivals')}</h2>
               </div>
-              <p className="mt-1 text-sm text-slate-500">Fresh products just added</p>
+              <p className="mt-1 text-sm text-slate-500">{t('Fresh products just added')}</p>
             </div>
             <button
               onClick={() => onNavigate('catalog', { filter: 'new' })}
               className="hidden items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 sm:flex"
             >
-              View All <ArrowRight size={16} />
+              {t('View All')} <ArrowRight size={16} />
             </button>
           </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -319,10 +321,10 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
       <section className="bg-gradient-to-br from-blue-600 to-cyan-500 py-16">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">
-            Join thousands of satisfied creators
+            {t('Join thousands of satisfied creators')}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-blue-100">
-            Trusted by designers, developers, and entrepreneurs worldwide
+            {t('Trusted by designers, developers, and entrepreneurs worldwide')}
           </p>
           <div className="mt-10 grid grid-cols-2 gap-8 sm:grid-cols-4">
             {[
@@ -333,7 +335,7 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-3xl font-bold text-white sm:text-4xl">{stat.value}</div>
-                <div className="mt-1 text-sm text-blue-100">{stat.label}</div>
+                <div className="mt-1 text-sm text-blue-100">{t(stat.label)}</div>
               </div>
             ))}
           </div>
@@ -341,7 +343,7 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
             onClick={() => onNavigate('catalog')}
             className="mt-10 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-semibold text-blue-600 shadow-lg transition hover:shadow-xl"
           >
-            Start Shopping
+            {t('Start Shopping')}
             <ArrowRight size={18} />
           </button>
         </div>

@@ -2,6 +2,8 @@ import { ShoppingCart, Download, Eye, MessageCircle } from 'lucide-react';
 import type { Product } from '@/lib/supabase';
 import { formatPrice, calculateDiscount, formatNumber } from '@/lib/utils';
 import { StarRating } from './StarRating';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedProduct } from '@/lib/productLocalization';
 
 type ProductCardProps = {
   product: Product;
@@ -11,6 +13,8 @@ type ProductCardProps = {
 };
 
 export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCardProps) {
+  const { language, t } = useLanguage();
+  const localizedProduct = getLocalizedProduct(product, language);
   const discount = calculateDiscount(product.price, product.original_price);
   const outOfStock = product.stock <= 0;
 
@@ -23,7 +27,7 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
         {product.image_url ? (
           <img
             src={product.image_url}
-            alt={product.name}
+            alt={localizedProduct.name}
             loading="lazy"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -36,12 +40,12 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
           {product.is_new && (
             <span className="rounded-full bg-emerald-500 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
-              New
+              {t('New')}
             </span>
           )}
           {product.is_bestseller && (
             <span className="rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
-              Bestseller
+              {t('Bestseller')}
             </span>
           )}
           {discount > 0 && (
@@ -51,7 +55,7 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
           )}
           {outOfStock && (
             <span className="rounded-full bg-slate-700 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
-              Out of stock
+              {t('Out of stock')}
             </span>
           )}
         </div>
@@ -68,7 +72,7 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
             }}
             className="flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white"
           >
-            <Eye size={14} /> Details
+            <Eye size={14} /> {t('Details')}
           </button>
           <button
             onClick={(e) => {
@@ -77,9 +81,9 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
             }}
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
             disabled={outOfStock}
-            title={outOfStock ? 'Out of stock' : 'Add to cart'}
+            title={outOfStock ? t('Out of stock') : t('Add to cart')}
           >
-            <ShoppingCart size={14} /> {outOfStock ? 'Unavailable' : 'Add'}
+            <ShoppingCart size={14} /> {outOfStock ? t('Unavailable') : t('Add')}
           </button>
         </div>
       </div>
@@ -93,11 +97,11 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
         </div>
 
         <h3 className="mb-1 line-clamp-1 text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-          {product.name}
+          {localizedProduct.name}
         </h3>
 
         <p className="mb-3 line-clamp-2 flex-1 text-xs leading-relaxed text-slate-500">
-          {product.description}
+          {localizedProduct.description}
         </p>
 
         <div className="flex items-center justify-between">
@@ -111,7 +115,9 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
               </span>
             )}
           </div>
-          <span className="text-xs text-slate-400">{formatNumber(product.sales_count)} sales</span>
+          <span className="text-xs text-slate-400">
+            {formatNumber(product.sales_count)} {t('sales')}
+          </span>
         </div>
         <div className="mt-3 flex justify-end">
           <button
@@ -120,7 +126,7 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
               event.stopPropagation();
               onChat(product);
             }}
-            title={`Chat admin tentang ${product.name}`}
+            title={`${t('Chat admin tentang')} ${localizedProduct.name}`}
             className="flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-50"
           >
             <MessageCircle size={14} /> Chat

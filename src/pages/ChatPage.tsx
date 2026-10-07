@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, Camera, FileText, Image as ImageIcon, MessageCircle, Plus, Send, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { supabase } from '@/lib/supabase';
 
 type Conversation = {
@@ -51,6 +52,7 @@ const ALLOWED_FILE_TYPES = new Set([
 
 export function ChatPage({ productId, onBack, onSignIn, onProductOpen }: ChatPageProps) {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const isAdmin = user?.app_metadata.role === 'admin';
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -239,17 +241,17 @@ export function ChatPage({ productId, onBack, onSignIn, onProductOpen }: ChatPag
   };
 
   if (authLoading) {
-    return <div className="mx-auto max-w-5xl px-4 py-16 text-center text-slate-500">Memeriksa akun...</div>;
+    return <div className="mx-auto max-w-5xl px-4 py-16 text-center text-slate-500">{t('Memeriksa akun...')}</div>;
   }
 
   if (!user) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
         <MessageCircle size={36} className="mx-auto text-slate-400" />
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">Chat Admin</h1>
-        <p className="mt-2 text-sm text-slate-500">Masuk ke akun untuk bertanya tentang produk dan melihat balasan admin.</p>
+        <h1 className="mt-4 text-2xl font-bold text-slate-900">{t('Chat Admin')}</h1>
+        <p className="mt-2 text-sm text-slate-500">{t('Masuk ke akun untuk bertanya tentang produk dan melihat balasan admin.')}</p>
         <button onClick={onSignIn} className="mt-6 rounded-lg bg-blue-700 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-800">
-          Masuk ke akun
+          {t('Masuk')} ke akun
         </button>
       </div>
     );
@@ -273,12 +275,12 @@ export function ChatPage({ productId, onBack, onSignIn, onProductOpen }: ChatPag
       {error && <p role="alert" className="mb-4 rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}
       <div className="grid min-h-[min(70vh,620px)] overflow-hidden rounded-xl border border-slate-200 bg-white md:grid-cols-[280px_1fr]">
         <aside className="border-b border-slate-200 md:border-b-0 md:border-r">
-          <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">Percakapan</h2>
+          <h2 className="border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-700">{t('Percakapan')}</h2>
           <div className="max-h-56 overflow-y-auto md:max-h-[560px]">
             {loading ? (
-              <p className="p-4 text-sm text-slate-500">Memuat chat...</p>
+              <p className="p-4 text-sm text-slate-500">{t('Memuat chat...')}</p>
             ) : conversations.length === 0 ? (
-              <p className="p-4 text-sm text-slate-500">Belum ada percakapan.</p>
+              <p className="p-4 text-sm text-slate-500">{t('Belum ada percakapan.')}</p>
             ) : conversations.map((conversation) => (
               <div key={conversation.id} className={`flex items-center border-b border-slate-100 pr-2 ${activeConversationId === conversation.id ? 'bg-emerald-50' : ''}`}>
                 <button
@@ -321,7 +323,7 @@ export function ChatPage({ productId, onBack, onSignIn, onProductOpen }: ChatPag
               </header>
               <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/70 p-4">
                 {messages.length === 0 ? (
-                  <p className="py-10 text-center text-sm text-slate-500">Kirim pesan pertama untuk memulai percakapan.</p>
+                  <p className="py-10 text-center text-sm text-slate-500">{t('Kirim pesan pertama untuk memulai percakapan.')}</p>
                 ) : messages.map((message) => {
                   const isOwnMessage = message.sender_id === user.id;
                   return (
@@ -380,7 +382,7 @@ export function ChatPage({ productId, onBack, onSignIn, onProductOpen }: ChatPag
                         type="button"
                         onClick={() => setAttachmentMenuOpen((open) => !open)}
                         disabled={pendingAttachments.length >= MAX_ATTACHMENTS || sending}
-                        aria-label="Tambah lampiran"
+                        aria-label={t('Tambah lampiran')}
                         title="Tambah lampiran"
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                       >
@@ -408,13 +410,13 @@ export function ChatPage({ productId, onBack, onSignIn, onProductOpen }: ChatPag
                       onChange={(event) => setDraft(event.target.value)}
                       maxLength={4000}
                       rows={2}
-                      placeholder="Tulis pesan..."
+                      placeholder={t('Tulis pesan...')}
                       className="min-h-11 flex-1 resize-y rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
                     />
                     <button
                       type="submit"
                       disabled={(!draft.trim() && pendingAttachments.length === 0) || sending}
-                      aria-label="Kirim pesan"
+                      aria-label={t('Kirim pesan')}
                       title="Kirim pesan"
                       className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 disabled:opacity-50"
                     >
@@ -423,14 +425,14 @@ export function ChatPage({ productId, onBack, onSignIn, onProductOpen }: ChatPag
                   </div>
                 </form>
               ) : (
-                <p className="border-t border-slate-200 p-4 text-center text-sm text-slate-500">Percakapan ini sudah ditutup.</p>
+                <p className="border-t border-slate-200 p-4 text-center text-sm text-slate-500">{t('Percakapan ini sudah ditutup.')}</p>
               )}
             </>
           ) : productId && !isAdmin ? (
             <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
               <MessageCircle size={34} className="text-emerald-700" />
-              <h2 className="mt-3 text-lg font-semibold text-slate-900">Tanya admin tentang produk ini</h2>
-              <p className="mt-2 max-w-sm text-sm text-slate-500">Percakapan tersimpan di akun Anda, jadi Anda dapat kembali melihat balasan kapan saja.</p>
+              <h2 className="mt-3 text-lg font-semibold text-slate-900">{t('Tanya admin tentang produk ini')}</h2>
+              <p className="mt-2 max-w-sm text-sm text-slate-500">{t('Percakapan tersimpan di akun Anda, jadi Anda dapat kembali melihat balasan kapan saja.')}</p>
               <button onClick={() => void startConversation()} className="mt-5 rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800">
                 Mulai chat
               </button>

@@ -17,8 +17,10 @@ export type Category = {
 export type Product = {
   id: string;
   name: string;
+  name_en: string | null;
   slug: string;
   description: string;
+  description_en: string | null;
   price: number;
   original_price: number | null;
   stock: number;
@@ -70,6 +72,7 @@ export type CartItem = {
 export type OrderItem = {
   product_id?: string;
   product_name?: string;
+  product_name_en?: string | null;
   unit_price?: number;
   days?: number;
   features?: number;

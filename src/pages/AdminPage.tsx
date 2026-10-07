@@ -30,8 +30,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [newCategory, setNewCategory] = useState({ name: '', slug: '', description: '', icon: 'Package' });
   const [newProduct, setNewProduct] = useState({
     name: '',
+    name_en: '',
     slug: '',
     description: '',
+    description_en: '',
     category_id: '',
     price: 0,
     feature_price: 10000,
@@ -94,6 +96,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
     setMessage('');
     const { error } = await supabase.from('products').update({
       name: product.name.trim(),
+      name_en: product.name_en?.trim() || null,
+      description: product.description.trim(),
+      description_en: product.description_en?.trim() || null,
       price: product.price,
       feature_price: product.feature_price,
       duration_prices: product.duration_prices,
@@ -199,8 +204,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
     ];
     const { data, error } = await supabase.from('products').insert({
       name,
+      name_en: newProduct.name_en.trim() || null,
       slug,
       description: newProduct.description.trim(),
+      description_en: newProduct.description_en.trim() || null,
       category_id: newProduct.category_id || null,
       price: basePrice,
       original_price: null,
@@ -225,7 +232,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     } else if (data) {
       setProducts((current) => [...current, data as Product].sort((left, right) => left.name.localeCompare(right.name)));
       setNewProduct({
-        name: '', slug: '', description: '', category_id: '', price: 0,
+        name: '', name_en: '', slug: '', description: '', description_en: '', category_id: '', price: 0,
         feature_price: 10000, stock: 100, image_url: '', file_type: 'ZIP', file_size: '1 MB', tags: '',
       });
       setShowAddForm(false);
@@ -431,8 +438,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
           <h2 className="mb-4 text-base font-semibold text-slate-900">New product</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs font-medium text-slate-600">
-              Product name
+              Product name (Indonesian)
               <input required value={newProduct.name} onChange={(event) => setNewProduct({ ...newProduct, name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Product name (English)
+              <input value={newProduct.name_en} onChange={(event) => setNewProduct({ ...newProduct, name_en: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
             <label className="text-xs font-medium text-slate-600">
               Slug
@@ -466,8 +477,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
               <input value={newProduct.file_size} onChange={(event) => setNewProduct({ ...newProduct, file_size: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
             <label className="text-xs font-medium text-slate-600 sm:col-span-2 lg:col-span-4">
-              Description
+              Description (Indonesian)
               <textarea required rows={3} value={newProduct.description} onChange={(event) => setNewProduct({ ...newProduct, description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2 lg:col-span-4">
+              Description (English, optional)
+              <textarea rows={3} value={newProduct.description_en} onChange={(event) => setNewProduct({ ...newProduct, description_en: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
             <label className="text-xs font-medium text-slate-600 sm:col-span-2">
               Image URL
@@ -491,10 +506,11 @@ export function AdminPage({ onBack }: AdminPageProps) {
       ) : (
         <div className="space-y-4">
           {products.map((product) => (
-            <section key={product.id} className="rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm transition hover:shadow-md lg:grid lg:grid-cols-[minmax(150px,1fr)_150px_150px_125px_2fr_auto] lg:items-end">
+            <section key={product.id} className="space-y-4 rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm transition hover:shadow-md">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_150px_150px_125px_2fr_auto] lg:items-end">
               <div className="min-w-0">
                 <label className="text-xs font-medium text-slate-600">
-                  Product name
+                  Product name (Indonesian)
                   <input
                     required
                     value={product.name}
@@ -580,6 +596,36 @@ export function AdminPage({ onBack }: AdminPageProps) {
                   <Trash2 size={17} />
                   <span className="lg:hidden">Delete</span>
                 </button>
+              </div>
+              </div>
+              <div className="grid gap-3 border-t border-slate-100 pt-4 md:grid-cols-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Product name (English)
+                  <input
+                    value={product.name_en ?? ''}
+                    onChange={(event) => updateProduct(product.id, { name_en: event.target.value })}
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
+                  />
+                </label>
+                <span className="hidden md:block" aria-hidden="true" />
+                <label className="text-xs font-medium text-slate-600">
+                  Description (Indonesian)
+                  <textarea
+                    rows={3}
+                    value={product.description}
+                    onChange={(event) => updateProduct(product.id, { description: event.target.value })}
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-medium text-slate-600">
+                  Description (English)
+                  <textarea
+                    rows={3}
+                    value={product.description_en ?? ''}
+                    onChange={(event) => updateProduct(product.id, { description_en: event.target.value })}
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
+                  />
+                </label>
               </div>
             </section>
           ))}

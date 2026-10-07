@@ -1,10 +1,12 @@
 import { Download, Twitter, Github, Linkedin, Mail } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 type FooterProps = {
   onNavigate: (page: string, params?: Record<string, string>) => void;
 };
 
 export function Footer({ onNavigate }: FooterProps) {
+  const { t } = useLanguage();
   const links: Record<string, { label: string; page: string; params?: Record<string, string> }[]> = {
     Shop: [
       { label: 'All Products', page: 'catalog' },
@@ -40,7 +42,7 @@ export function Footer({ onNavigate }: FooterProps) {
               </span>
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-500">
-              Your premier destination for premium digital products. Templates, UI kits, courses, graphics, and more — all in one place.
+              {t('Your premier destination for premium digital products. Templates, UI kits, courses, graphics, and more — all in one place.')}
             </p>
             <div className="mt-5 flex items-center gap-3">
               {[Twitter, Github, Linkedin, Mail].map((Icon, i) => (
@@ -57,7 +59,7 @@ export function Footer({ onNavigate }: FooterProps) {
 
           {Object.entries(links).map(([section, items]) => (
             <div key={section}>
-              <h4 className="mb-3 text-sm font-semibold text-slate-900">{section}</h4>
+              <h4 className="mb-3 text-sm font-semibold text-slate-900">{t(section)}</h4>
               <ul className="space-y-2">
                 {items.map((item) => (
                   <li key={item.label}>
@@ -65,7 +67,7 @@ export function Footer({ onNavigate }: FooterProps) {
                       onClick={() => onNavigate(item.page, item.params)}
                       className="text-sm text-slate-500 transition hover:text-blue-600"
                     >
-                      {item.label}
+                      {t(item.label)}
                     </button>
                   </li>
                 ))}
@@ -76,14 +78,14 @@ export function Footer({ onNavigate }: FooterProps) {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row">
           <p className="text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} SmartNova. All rights reserved.
+            &copy; {new Date().getFullYear()} SmartNova. {t('All rights reserved.')}
           </p>
           <div className="flex items-center gap-4 text-xs text-slate-400">
-            <span>Secure payments</span>
+            <span>{t('Secure payments')}</span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>Instant download</span>
+            <span>{t('Instant download')}</span>
             <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>Lifetime updates</span>
+            <span>{t('Lifetime updates')}</span>
           </div>
         </div>
       </div>

@@ -1,12 +1,15 @@
 import { X, Plus, Minus, Trash2, ShoppingCart, ArrowRight } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatPrice, getCartItemKey } from '@/lib/utils';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedProduct } from '@/lib/productLocalization';
 
 type CartDrawerProps = {
   onCheckout: () => void;
 };
 
 export function CartDrawer({ onCheckout }: CartDrawerProps) {
+  const { language, t } = useLanguage();
   const { items, isCartOpen, setCartOpen, updateQuantity, removeFromCart, totalItems, totalPrice } =
     useCart();
 
@@ -28,7 +31,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
           <div className="flex items-center gap-2">
             <ShoppingCart size={20} className="text-slate-700" />
             <h2 className="text-lg font-semibold text-slate-900">
-              Cart {totalItems > 0 && `(${totalItems})`}
+              {t('Cart')} {totalItems > 0 && `(${totalItems})`}
             </h2>
           </div>
           <button
@@ -44,22 +47,24 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
               <ShoppingCart size={36} className="text-slate-300" />
             </div>
-            <h3 className="mt-4 text-base font-semibold text-slate-900">Your cart is empty</h3>
+            <h3 className="mt-4 text-base font-semibold text-slate-900">{t('Your cart is empty')}</h3>
             <p className="mt-1 text-sm text-slate-500">
-              Browse our catalog and add some digital products to get started.
+              {t('Browse our catalog and add some digital products to get started.')}
             </p>
             <button
               onClick={() => setCartOpen(false)}
               className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
-              Continue Shopping
+              {t('Continue Shopping')}
             </button>
           </div>
         ) : (
           <>
             <div className="flex-1 overflow-y-auto p-4">
               <div className="space-y-3">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const product = getLocalizedProduct(item.product, language);
+                  return (
                   <div
                     key={getCartItemKey(item)}
                     className="flex gap-3 rounded-xl border border-slate-200 p-3"
@@ -68,14 +73,14 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                       {item.product.image_url && (
                         <img
                           src={item.product.image_url}
-                          alt={item.product.name}
+                          alt={product.name}
                           className="h-full w-full object-cover"
                         />
                       )}
                     </div>
                     <div className="flex flex-1 flex-col">
                       <h4 className="line-clamp-1 text-sm font-semibold text-slate-900">
-                        {item.product.name}
+                        {product.name}
                       </h4>
                       <span className="mt-0.5 text-xs text-slate-400">
                         {item.days} hari · {item.features} fitur · {item.product.file_type}
@@ -112,23 +117,24 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
             <div className="border-t border-slate-200 p-4">
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm text-slate-600">Subtotal</span>
+                <span className="text-sm text-slate-600">{t('Subtotal')}</span>
                 <span className="text-lg font-bold text-slate-900">{formatPrice(totalPrice)}</span>
               </div>
               <p className="mb-3 text-xs text-slate-400">
-                Digital products are delivered instantly after checkout.
+                {t('Digital products are delivered instantly after checkout.')}
               </p>
               <button
                 onClick={onCheckout}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
-                Proceed to Checkout
+                {t('Proceed to Checkout')}
                 <ArrowRight size={16} />
               </button>
             </div>

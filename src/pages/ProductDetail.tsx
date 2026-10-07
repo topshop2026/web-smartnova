@@ -17,6 +17,8 @@ import { supabase, type Product, type Review } from '@/lib/supabase';
 import { useCart } from '@/context/CartContext';
 import { StarRating } from '@/components/StarRating';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { getLocalizedProduct } from '@/lib/productLocalization';
 import {
   formatPrice,
   calculateDiscount,
@@ -36,6 +38,8 @@ type ProductDetailProps = {
 export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductDetailProps) {
   const { addToCart, setCartOpen } = useCart();
   const { user } = useAuth();
+  const { language, t } = useLanguage();
+  const localizedProduct = getLocalizedProduct(product, language);
   const userId = user?.id;
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,11 +93,11 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
   const handleSubmitReview = async () => {
     setReviewError('');
     if (!user || !hasCompletedPurchase) {
-      setReviewError('A completed purchase of this product is required to leave a review.');
+      setReviewError(t('A completed purchase of this product is required to leave a review.'));
       return;
     }
     if (!newReview.name.trim() || !newReview.comment.trim()) {
-      setReviewError('Please fill in your name and comment.');
+      setReviewError(t('Please fill in your name and comment.'));
       return;
     }
 
@@ -111,7 +115,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
       .single();
 
     if (error) {
-      setReviewError('Failed to submit review. Please try again.');
+      setReviewError(t('Failed to submit review. Please try again.'));
       setSubmitting(false);
       return;
     }
@@ -146,7 +150,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               {product.image_url ? (
                 <img
                   src={product.image_url}
-                  alt={product.name}
+                  alt={localizedProduct.name}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -158,12 +162,12 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               <div className="absolute left-4 top-4 flex flex-wrap gap-2">
                 {product.is_new && (
                   <span className="rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
-                    New
+                    {t('New')}
                   </span>
                 )}
                 {product.is_bestseller && (
                   <span className="rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
-                    Bestseller
+                    {t('Bestseller')}
                   </span>
                 )}
                 {discount > 0 && (
@@ -179,14 +183,14 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               <div className="mb-2 flex items-center gap-2">
                 <StarRating rating={product.rating} size={16} />
                 <span className="text-sm text-slate-600">
-                  {product.rating.toFixed(1)} ({formatNumber(product.review_count)} reviews)
+                  {product.rating.toFixed(1)} ({formatNumber(product.review_count)} {t('reviews')})
                 </span>
               </div>
 
-              <h1 className="text-2xl font-bold text-slate-900">{product.name}</h1>
+              <h1 className="text-2xl font-bold text-slate-900">{localizedProduct.name}</h1>
 
               <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                {product.description}
+                {localizedProduct.description}
               </p>
 
               {/* Product details */}
@@ -194,7 +198,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3">
                   <FileText size={18} className="text-slate-400" />
                   <div>
-                    <div className="text-xs text-slate-400">File Type</div>
+                    <div className="text-xs text-slate-400">{t('File Type')}</div>
                     <div className="text-sm font-semibold text-slate-700">
                       {product.file_type || 'N/A'}
                     </div>
@@ -203,7 +207,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3">
                   <HardDrive size={18} className="text-slate-400" />
                   <div>
-                    <div className="text-xs text-slate-400">File Size</div>
+                    <div className="text-xs text-slate-400">{t('File Size')}</div>
                     <div className="text-sm font-semibold text-slate-700">
                       {product.file_size || 'N/A'}
                     </div>
@@ -212,7 +216,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3">
                   <TrendingUp size={18} className="text-slate-400" />
                   <div>
-                    <div className="text-xs text-slate-400">Sales</div>
+                    <div className="text-xs text-slate-400">{t('Sales')}</div>
                     <div className="text-sm font-semibold text-slate-700">
                       {formatNumber(product.sales_count)}
                     </div>
@@ -221,15 +225,15 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3">
                   <Download size={18} className="text-slate-400" />
                   <div>
-                    <div className="text-xs text-slate-400">Delivery</div>
-                    <div className="text-sm font-semibold text-slate-700">Instant</div>
+                    <div className="text-xs text-slate-400">{t('Delivery')}</div>
+                    <div className="text-sm font-semibold text-slate-700">{t('Instant')}</div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-slate-600">
-                  Waktu pengerjaan
+                  {t('Waktu pengerjaan')}
                   <select
                     value={days}
                     onChange={(event) => setDays(Number(event.target.value))}
@@ -237,21 +241,21 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                   >
                     {getProductDurations(product.duration_prices).map((option) => (
                       <option key={option.days} value={option.days}>
-                        {option.days} hari
+                        {option.days} {t('days')}
                         {option.surcharge > 0 ? ` (+${formatPrice(option.surcharge)})` : ''}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label className="text-xs font-semibold text-slate-600">
-                  Fitur tambahan
+                  {t('Fitur tambahan')}
                   <select
                     value={features}
                     onChange={(event) => setFeatures(Number(event.target.value))}
                     className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-blue-500"
                   >
                     {Array.from({ length: 20 }, (_, index) => index + 1).map((count) => (
-                      <option key={count} value={count}>{count} fitur</option>
+                      <option key={count} value={count}>{count} {t('features')}</option>
                     ))}
                   </select>
                 </label>
@@ -276,7 +280,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               <div className="mt-auto pt-6">
                 {outOfStock && (
                   <p className="mb-3 rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600">
-                    This product is currently out of stock.
+                    {t('This product is currently out of stock.')}
                   </p>
                 )}
                 <div className="mb-4 flex items-baseline gap-3">
@@ -304,11 +308,11 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                   >
                     {added ? (
                       <>
-                        <Check size={18} /> Added!
+                        <Check size={18} /> {t('Added!')}
                       </>
                     ) : (
                       <>
-                        <ShoppingCart size={16} /> Add to Cart
+                        <ShoppingCart size={16} /> {t('Add to Cart')}
                       </>
                     )}
                   </button>
@@ -317,12 +321,12 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                     disabled={outOfStock}
                     className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-2 py-3 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
                   >
-                    <Download size={16} /> Buy Now
+                    <Download size={16} /> {t('Buy Now')}
                   </button>
                   <button
                     type="button"
                     onClick={() => onChat(product)}
-                    title={`Chat admin tentang ${product.name}`}
+                    title={`${t('Chat admin tentang')} ${localizedProduct.name}`}
                     className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-white px-2 py-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-50 sm:text-sm"
                   >
                     <MessageCircle size={16} /> Chat
@@ -335,18 +339,18 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
           {/* Reviews section */}
           <div className="border-t border-slate-200 p-6">
             <h2 className="mb-4 text-xl font-bold text-slate-900">
-              Customer Reviews ({reviews.length})
+              {t('Customer Reviews')} ({reviews.length})
             </h2>
 
             {/* Write review */}
             {hasCompletedPurchase && !hasReviewed ? (
               <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <h3 className="mb-3 text-sm font-semibold text-slate-900">Write a Review</h3>
+                <h3 className="mb-3 text-sm font-semibold text-slate-900">{t('Write a Review')}</h3>
                 <div className="space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <input
                     type="text"
-                    placeholder="Your name"
+                    placeholder={t('Your name')}
                     value={newReview.name}
                     onChange={(e) => setNewReview({ ...newReview, name: e.target.value })}
                     className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400"
@@ -370,7 +374,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                   </div>
                 </div>
                 <textarea
-                  placeholder="Share your thoughts about this product..."
+                  placeholder={t('Share your thoughts about this product...')}
                   value={newReview.comment}
                   onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                   rows={3}
@@ -385,23 +389,23 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                   className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Send size={14} />
-                  {submitting ? 'Submitting...' : 'Submit Review'}
+                  {t(submitting ? 'Submitting...' : 'Submit Review')}
                 </button>
                 </div>
               </div>
             ) : hasCompletedPurchase ? (
               <p className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                You have already reviewed this product.
+                {t('You have already reviewed this product.')}
               </p>
             ) : (
               <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 {user ? (
-                  'Reviews are available after this product has a completed purchase on your account.'
+                  t('Reviews are available after this product has a completed purchase on your account.')
                 ) : (
                   <span>
-                    Sign in to check review eligibility.{' '}
+                    {t('Sign in to check review eligibility.')}{' '}
                     <button onClick={() => onNavigate('account')} className="font-semibold text-blue-700 hover:underline">
-                      Sign in
+                      {t('Sign in')}
                     </button>
                   </span>
                 )}
@@ -419,7 +423,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                 ))}
               </div>
             ) : reviews.length === 0 ? (
-              <p className="text-sm text-slate-500">No reviews yet. Be the first to review!</p>
+              <p className="text-sm text-slate-500">{t('No reviews yet. Be the first to review!')}</p>
             ) : (
               <div className="space-y-3">
                 {reviews.map((review) => (
@@ -437,7 +441,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                     </div>
                     <p className="text-sm leading-relaxed text-slate-600">{review.comment}</p>
                     <span className="mt-2 block text-xs text-slate-400">
-                      {new Date(review.created_at).toLocaleDateString('en-US', {
+                      {new Date(review.created_at).toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -456,7 +460,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               className="flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-900"
             >
               <ArrowLeft size={16} />
-              Back to Catalog
+              {t('Back to Catalog')}
             </button>
           </div>
         </div>
