@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { supabase, type Product, type Category } from '@/lib/supabase';
-import { getCategoryIcon, isCategoryIconUrl } from '@/lib/icons';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { ProductCard } from '@/components/ProductCard';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -142,7 +142,6 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
           {categories.map((cat) => {
-            const Icon = getCategoryIcon(cat.icon);
             return (
               <button
                 key={cat.id}
@@ -150,11 +149,7 @@ export function HomePage({ onNavigate, onAddToCart, onChat, onProductClick }: Ho
                 className="group flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-blue-300 hover:shadow-lg hover:shadow-blue-100/50"
               >
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-50 text-slate-600 transition group-hover:bg-blue-50 group-hover:text-blue-600">
-                  {isCategoryIconUrl(cat.icon) ? (
-                    <img src={cat.icon} alt="" className="h-7 w-7 rounded-md object-cover" />
-                  ) : (
-                    <Icon size={22} />
-                  )}
+                  <CategoryIcon value={cat.icon} size={22} className="h-7 w-7 rounded-md object-cover" />
                 </div>
                 <span className="text-xs font-semibold text-slate-700 group-hover:text-blue-600">
                   {cat.name}

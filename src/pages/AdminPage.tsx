@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, CheckCircle2, FolderPen, PackagePlus, Plus, Save, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Category, type Order, type Product } from '@/lib/supabase';
-import { isCategoryIconUrl } from '@/lib/icons';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import { getOrderStatus, orderStatuses } from '@/lib/orderStatus';
 import { formatPrice } from '@/lib/utils';
 
@@ -414,13 +414,22 @@ export function AdminPage({ onBack }: AdminPageProps) {
                   <input value={category.description ?? ''} onChange={(event) => updateCategory(category.id, { description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
                 </label>
                 <label className="text-xs font-medium text-slate-600 sm:col-span-2">
-                  Icon name or ImageKit/Google Drive URL
+                  Icon name or public image URL
                   <input value={category.icon} onChange={(event) => updateCategory(category.id, { icon: event.target.value })} placeholder="Package or https://..." className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
                 </label>
               </div>
-              {isCategoryIconUrl(category.icon) && (
-                <img src={category.icon} alt="Category icon preview" className="mt-3 h-14 w-14 rounded-lg border border-slate-200 object-cover" />
-              )}
+              <div className="mt-3 flex items-center gap-2">
+                <CategoryIcon
+                  value={category.icon}
+                  size={24}
+                  alt="Category icon preview"
+                  className="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 p-2 object-contain"
+                  onLoadError={() => setMessage('Category icon could not be loaded. Check that the image URL is public and points directly to an image.')}
+                />
+                <p className="text-xs text-slate-500">
+                  Use a publicly accessible direct image URL. Google Drive file-sharing links are converted to image URLs.
+                </p>
+              </div>
               <div className="mt-3 flex justify-end gap-2">
                 <button onClick={() => void saveCategory(category)} disabled={savingCategoryId === category.id || deletingCategoryId === category.id} className="flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
                   <Save size={14} /> Save

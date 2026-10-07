@@ -3,7 +3,7 @@ import { ShoppingCart, Search, Menu, X, Zap, Download, UserRound, Languages } fr
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { getCategoryIcon, isCategoryIconUrl } from '@/lib/icons';
+import { CategoryIcon } from '@/components/CategoryIcon';
 import type { Category } from '@/lib/supabase';
 
 type HeaderProps = {
@@ -246,7 +246,6 @@ export function Header({
               </h4>
               <div className="space-y-1">
                 {categories.map((cat) => {
-                  const Icon = getCategoryIcon(cat.icon);
                   return (
                     <button
                       key={cat.id}
@@ -256,11 +255,7 @@ export function Header({
                       }}
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
                     >
-                      {isCategoryIconUrl(cat.icon) ? (
-                        <img src={cat.icon} alt="" className="h-4 w-4 rounded object-cover" />
-                      ) : (
-                        <Icon size={16} className="text-slate-400" />
-                      )}
+                      <CategoryIcon value={cat.icon} size={16} className="h-4 w-4 rounded object-cover text-slate-400" />
                       {cat.name}
                     </button>
                   );
