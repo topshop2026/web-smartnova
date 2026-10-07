@@ -113,6 +113,7 @@ const translations: Record<string, string> = {
   'Select language': 'Pilih bahasa',
   'Add to cart': 'Tambah ke Keranjang',
   'Chat admin about': 'Chat admin tentang',
+  'View product image': 'Lihat gambar produk',
   'Order Confirmed!': 'Pesanan Dikonfirmasi!',
   'Thank you for your purchase. Your payment has been confirmed and your order is complete.':
     'Terima kasih atas pembelian Anda. Pembayaran telah dikonfirmasi dan pesanan selesai.',

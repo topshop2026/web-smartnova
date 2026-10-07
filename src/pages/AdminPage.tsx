@@ -5,6 +5,7 @@ import { supabase, type Category, type Order, type Product } from '@/lib/supabas
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { getOrderStatus, orderStatuses } from '@/lib/orderStatus';
 import { formatPrice } from '@/lib/utils';
+import { getProductImages, parseProductImageUrls, validateProductImageUrls } from '@/lib/productImages';
 
 type AdminPageProps = {
   onBack: () => void;
@@ -39,6 +40,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     feature_price: 10000,
     stock: 100,
     image_url: '',
+    image_urls: '',
     file_type: 'ZIP',
     file_size: '1 MB',
     tags: '',
@@ -92,6 +94,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
   };
 
   const saveProduct = async (product: Product) => {
+    const imageUrls = parseProductImageUrls((product.image_urls ?? []).join('\n'));
+    if (!validateProductImageUrls([...imageUrls, product.image_url?.trim() ?? ''].filter(Boolean))) {
+      setMessage(`Images for "${product.name}" must use valid public HTTP or HTTPS URLs.`);
+      return;
+    }
+
     setSavingId(product.id);
     setMessage('');
     const { error } = await supabase.from('products').update({
@@ -99,6 +107,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
       name_en: product.name_en?.trim() || null,
       description: product.description.trim(),
       description_en: product.description_en?.trim() || null,
+      image_url: product.image_url?.trim() || null,
+      image_urls: imageUrls,
       price: product.price,
       feature_price: product.feature_price,
       duration_prices: product.duration_prices,
@@ -186,8 +196,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
   const createProduct = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setAddingProduct(true);
     setMessage('');
+    const imageUrls = parseProductImageUrls(newProduct.image_urls);
+    if (!validateProductImageUrls([...imageUrls, newProduct.image_url.trim()].filter(Boolean))) {
+      setMessage('Product images must use valid public HTTP or HTTPS URLs.');
+      return;
+    }
+    setAddingProduct(true);
     const name = newProduct.name.trim();
     const slug = newProduct.slug.trim() || name.toLowerCase()
       .normalize('NFKD')
@@ -215,6 +230,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
       duration_prices,
       stock: Number(newProduct.stock),
       image_url: newProduct.image_url.trim() || null,
+      image_urls: imageUrls,
       preview_url: null,
       file_type: newProduct.file_type.trim() || null,
       file_size: newProduct.file_size.trim() || null,
@@ -233,7 +249,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setProducts((current) => [...current, data as Product].sort((left, right) => left.name.localeCompare(right.name)));
       setNewProduct({
         name: '', name_en: '', slug: '', description: '', description_en: '', category_id: '', price: 0,
-        feature_price: 10000, stock: 100, image_url: '', file_type: 'ZIP', file_size: '1 MB', tags: '',
+        feature_price: 10000, stock: 100, image_url: '', image_urls: '', file_type: 'ZIP', file_size: '1 MB', tags: '',
       });
       setShowAddForm(false);
       setMessage(`${name} added to the catalog.`);
@@ -494,8 +510,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
               <textarea rows={3} value={newProduct.description_en} onChange={(event) => setNewProduct({ ...newProduct, description_en: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
             <label className="text-xs font-medium text-slate-600 sm:col-span-2">
-              Image URL
-              <input type="url" value={newProduct.image_url} onChange={(event) => setNewProduct({ ...newProduct, image_url: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              Main image URL
+              <input type="url" value={newProduct.image_url} onChange={(event) => setNewProduct({ ...newProduct, image_url: event.target.value })} placeholder="https://example.com/image.jpg" className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600 sm:col-span-2">
+              Additional image URLs (one URL per line)
+              <textarea rows={3} value={newProduct.image_urls} onChange={(event) => setNewProduct({ ...newProduct, image_urls: event.target.value })} placeholder={'https://example.com/image-2.jpg\nhttps://example.com/image-3.jpg'} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
             <label className="text-xs font-medium text-slate-600 sm:col-span-2">
               Tags (comma separated)
@@ -635,6 +655,42 @@ export function AdminPage({ onBack }: AdminPageProps) {
                     className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
                   />
                 </label>
+                <label className="text-xs font-medium text-slate-600">
+                  Main image URL
+                  <input
+                    type="url"
+                    value={product.image_url ?? ''}
+                    onChange={(event) => updateProduct(product.id, { image_url: event.target.value || null })}
+                    placeholder="https://example.com/image.jpg"
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-medium text-slate-600">
+                  Additional image URLs (one URL per line)
+                  <textarea
+                    rows={3}
+                    value={(product.image_urls ?? []).join('\n')}
+                    onChange={(event) => {
+                      const image_urls = event.target.value.split(/\r?\n/);
+                      updateProduct(product.id, { image_urls });
+                    }}
+                    placeholder={'https://example.com/image-2.jpg\nhttps://example.com/image-3.jpg'}
+                    className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2 md:col-span-2">
+                  {getProductImages(product.image_url, product.image_urls).map((imageUrl) => (
+                    <img
+                      key={imageUrl}
+                      src={imageUrl}
+                      alt={`${product.name} preview`}
+                      className="h-16 w-16 rounded-lg border border-slate-200 bg-slate-50 object-cover"
+                      onError={(event) => {
+                        event.currentTarget.style.visibility = 'hidden';
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </section>
           ))}

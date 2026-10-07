@@ -16,6 +16,8 @@ The inventory migration gives existing and new products 100 units by default. Th
 
 Product translations add optional English names and descriptions. Apply migrations with `supabase db push`, then enter English copy for each product in the admin dashboard. English storefront pages use the English copy when present and fall back to the Indonesian content otherwise.
 
+The product image gallery migration adds support for a main image and multiple additional image URLs per product. Apply it with `supabase db push`. Admins can edit the main image URL and add additional public image URLs (one per line) for new and existing products; customers can browse the gallery from the product detail view.
+
 The payment notification migration stores the customer's WhatsApp number and consent timestamp. Checkout requires the customer to opt in before a WhatsApp confirmation can be sent.
 
 ## Configure Midtrans Sandbox

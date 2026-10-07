@@ -28,6 +28,7 @@ export type Product = {
   duration_prices: DurationPrice[];
   category_id: string | null;
   image_url: string | null;
+  image_urls: string[];
   preview_url: string | null;
   file_type: string | null;
   file_size: string | null;

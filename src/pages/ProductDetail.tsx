@@ -19,6 +19,7 @@ import { StarRating } from '@/components/StarRating';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { getLocalizedProduct } from '@/lib/productLocalization';
+import { getProductImages } from '@/lib/productImages';
 import {
   formatPrice,
   calculateDiscount,
@@ -51,6 +52,11 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
   const [newReview, setNewReview] = useState({ name: '', rating: 5, comment: '' });
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const productImages = getProductImages(product.image_url, product.image_urls);
+  const firstProductImage = productImages[0] ?? '';
+  const productImagesKey = productImages.join('\n');
+  const [selectedImage, setSelectedImage] = useState(firstProductImage);
+  const [failedImages, setFailedImages] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -78,6 +84,11 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
     void loadProductDetails();
     return () => { active = false; };
   }, [product.id, userId]);
+
+  useEffect(() => {
+    setSelectedImage(firstProductImage);
+    setFailedImages([]);
+  }, [product.id, productImagesKey, firstProductImage]);
 
   const handleAddToCart = () => {
     addToCart(product, { days, features });
@@ -147,11 +158,16 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
           <div className="grid grid-cols-1 md:grid-cols-2">
             {/* Image */}
             <div className="relative aspect-[4/3] bg-slate-100 md:aspect-auto">
-              {product.image_url ? (
+              {selectedImage ? (
                 <img
-                  src={product.image_url}
+                  src={selectedImage}
                   alt={localizedProduct.name}
                   className="h-full w-full object-cover"
+                  onError={() => {
+                    const unavailable = new Set([...failedImages, selectedImage]);
+                    setFailedImages([...unavailable]);
+                    setSelectedImage(productImages.find((image) => !unavailable.has(image)) ?? '');
+                  }}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center text-slate-300">
@@ -177,6 +193,35 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                 )}
               </div>
             </div>
+            {productImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto border-t border-slate-100 bg-white p-3 md:col-start-1">
+                {productImages.map((image, index) => (
+                  <button
+                    key={image}
+                    type="button"
+                    onClick={() => setSelectedImage(image)}
+                    aria-label={`${t('View product image')} ${index + 1}`}
+                    aria-pressed={selectedImage === image}
+                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                      selectedImage === image ? 'border-blue-600' : 'border-slate-200 hover:border-blue-300'
+                    }`}
+                  >
+                    {failedImages.includes(image) ? (
+                      <span className="flex h-full w-full items-center justify-center bg-slate-100 text-xs text-slate-500">
+                        {t('Unavailable')}
+                      </span>
+                    ) : (
+                      <img
+                        src={image}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={() => setFailedImages((current) => [...new Set([...current, image])])}
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Info */}
             <div className="flex flex-col p-6">
