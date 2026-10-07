@@ -252,6 +252,37 @@ const translations: Record<string, string> = {
   'Editorial testimonial': 'Testimoni editorial',
   'Editorial testimonials could not be loaded.':
     'Testimoni editorial tidak dapat dimuat.',
+  'Revenue overview': 'Ringkasan pendapatan',
+  'Revenue is calculated from confirmed, completed payments only.':
+    'Pendapatan dihitung hanya dari pembayaran yang berhasil dikonfirmasi.',
+  'All time': 'Sepanjang waktu',
+  'Total revenue': 'Total pendapatan',
+  "Today's revenue": 'Pendapatan hari ini',
+  "This month's revenue": 'Pendapatan bulan ini',
+  'Completed orders': 'Pesanan selesai',
+  'From completed orders': 'Dari pesanan yang dibayar',
+  'Paid and confirmed': 'Dibayar dan dikonfirmasi',
+  'Revenue trend': 'Tren pendapatan',
+  'Monthly revenue for the last 12 months': 'Pendapatan bulanan selama 12 bulan terakhir',
+  'Revenue trends will appear when a payment is completed.':
+    'Tren pendapatan akan muncul setelah pembayaran selesai.',
+  'Top-selling products': 'Produk terlaris',
+  'Based on completed orders': 'Berdasarkan pesanan selesai',
+  'No completed product sales yet.': 'Belum ada penjualan produk yang selesai.',
+  sold: 'terjual',
+  'Recent transactions': 'Transaksi terbaru',
+  'Latest orders and payment statuses': 'Pesanan dan status pembayaran terbaru',
+  Date: 'Tanggal',
+  Order: 'Pesanan',
+  Customer: 'Pelanggan',
+  Amount: 'Jumlah',
+  'Payment status': 'Status pembayaran',
+  'No transactions yet.': 'Belum ada transaksi.',
+  pending: 'Menunggu pembayaran',
+  completed: 'Selesai',
+  failed: 'Gagal',
+  expired: 'Kedaluwarsa',
+  refunded: 'Dikembalikan',
 };
 
 const reverseTranslations = Object.fromEntries(

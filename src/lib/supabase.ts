@@ -101,4 +101,5 @@ export type Order = {
   payment_redirect_url: string | null;
   items_json: OrderItem[];
   created_at: string;
+  payment_completed_at: string | null;
 };

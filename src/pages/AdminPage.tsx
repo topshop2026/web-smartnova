@@ -6,6 +6,7 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 import { getOrderStatus, orderStatuses } from '@/lib/orderStatus';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, parseProductImageUrls, validateProductImageUrls } from '@/lib/productImages';
+import { AdminRevenueOverview } from '@/components/AdminRevenueOverview';
 
 type AdminPageProps = {
   onBack: () => void;
@@ -28,6 +29,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [savingCategoryId, setSavingCategoryId] = useState<string | null>(null);
   const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+  const [ordersError, setOrdersError] = useState('');
   const [addingTestimonial, setAddingTestimonial] = useState(false);
   const [deletingTestimonialId, setDeletingTestimonialId] = useState<string | null>(null);
   const [testimonialForm, setTestimonialForm] = useState({ product_id: '', author_name: '', quote: '' });
@@ -66,7 +68,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
         supabase.from('editorial_testimonials').select('*').order('created_at', { ascending: false }),
       ]);
       if (productResult.error) setMessage(productResult.error.message);
-      if (orderResult.error) setMessage(orderResult.error.message);
+      if (orderResult.error) {
+        setOrdersError(orderResult.error.message);
+        setMessage(orderResult.error.message);
+      } else {
+        setOrdersError('');
+      }
       if (testimonialResult.error) setMessage(testimonialResult.error.message);
       setProducts((productResult.data as Product[] | null) ?? []);
       setCategories((categoryResult.data as Category[] | null) ?? []);
@@ -356,6 +363,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
           <p className="mt-1 text-sm text-slate-500">Manage inventory and pricing in Indonesian rupiah (IDR).</p>
         </div>
       </div>
+
+      {ordersError ? (
+        <p role="alert" className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+          Revenue overview is unavailable because orders could not be loaded: {ordersError}
+        </p>
+      ) : (
+        <AdminRevenueOverview orders={orders} />
+      )}
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">

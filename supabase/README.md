@@ -20,6 +20,8 @@ The product image gallery migration adds support for a main image and multiple a
 
 Editorial testimonials can be added by admins from the admin dashboard. They are stored separately from purchase-verified customer reviews and are displayed with an explicit “Editorial testimonial” label. Apply the migration with `supabase db push`.
 
+The admin revenue dashboard reports gross revenue from completed, non-refunded payments. A payment completion timestamp is recorded for accurate daily and monthly totals; existing completed orders are backfilled using their order creation date as the best available historical estimate.
+
 The payment notification migration stores the customer's WhatsApp number and consent timestamp. Checkout requires the customer to opt in before a WhatsApp confirmation can be sent.
 
 ## Configure Midtrans Sandbox
