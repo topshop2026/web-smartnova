@@ -1,93 +1,62 @@
-import { Download, Twitter, Github, Linkedin, Mail } from 'lucide-react';
+import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 type FooterProps = {
   onNavigate: (page: string, params?: Record<string, string>) => void;
 };
 
+const footerGroups = [
+  {
+    title: 'Jelajahi',
+    links: [
+      ['Produk digital', 'catalog'],
+      ['Layanan jasa', 'services'],
+      ['Portofolio', 'portfolio'],
+      ['Tentang kami', 'about'],
+      ['Kontak', 'contact'],
+    ],
+  },
+  {
+    title: 'Informasi',
+    links: [
+      ['Kebijakan privasi', 'privacy'],
+      ['Syarat layanan', 'terms'],
+      ['Pembatalan & refund', 'refund'],
+    ],
+  },
+];
+
 export function Footer({ onNavigate }: FooterProps) {
   const { t } = useLanguage();
-  const links: Record<string, { label: string; page: string; params?: Record<string, string> }[]> = {
-    Shop: [
-      { label: 'All Products', page: 'catalog' },
-      { label: 'Bestsellers', page: 'catalog', params: { filter: 'bestseller' } },
-      { label: 'New Arrivals', page: 'catalog', params: { filter: 'new' } },
-      { label: 'Featured', page: 'catalog', params: { filter: 'featured' } },
-    ],
-    Company: [
-      { label: 'About Us', page: 'about' },
-      { label: 'Blog', page: 'blog' },
-      { label: 'Careers', page: 'careers' },
-      { label: 'Contact', page: 'contact' },
-    ],
-    Support: [
-      { label: 'Help Center', page: 'help' },
-      { label: 'Terms of Service', page: 'terms' },
-      { label: 'Privacy Policy', page: 'privacy' },
-      { label: 'Refund Policy', page: 'refund' },
-    ],
-  };
 
   return (
-    <footer className="border-t border-slate-200 bg-slate-50">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
-          <div className="col-span-2 lg:col-span-2">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500">
-                <Download size={18} className="text-white" />
-              </div>
-              <span className="text-xl font-bold text-slate-900">
-                Smart<span className="text-blue-600">Nova</span>
-              </span>
-            </div>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-500">
-              {t('Your premier destination for premium digital products. Templates, UI kits, courses, graphics, and more — all in one place.')}
-            </p>
-            <div className="mt-5 flex items-center gap-3">
-              {[Twitter, Github, Linkedin, Mail].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-blue-300 hover:text-blue-600"
-                >
-                  <Icon size={16} />
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {Object.entries(links).map(([section, items]) => (
-            <div key={section}>
-              <h4 className="mb-3 text-sm font-semibold text-slate-900">{t(section)}</h4>
-              <ul className="space-y-2">
-                {items.map((item) => (
-                  <li key={item.label}>
-                    <button
-                      onClick={() => onNavigate(item.page, item.params)}
-                      className="text-sm text-slate-500 transition hover:text-blue-600"
-                    >
-                      {t(item.label)}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+    <footer className="site-footer">
+      <div className="site-container footer-main">
+        <div className="footer-brand">
+          <button className="brand-lockup" onClick={() => onNavigate('home')}>
+            <span className="brand-symbol"><Sparkles size={20} /></span>
+            <span>Smart<span>Nova</span></span>
+          </button>
+          <p>Build Smarter. Grow Faster.</p>
+          <small>Produk digital dan layanan software engineering untuk bisnis yang ingin berkembang.</small>
         </div>
-
-        <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row">
-          <p className="text-xs text-slate-400">
-            &copy; {new Date().getFullYear()} SmartNova. {t('All rights reserved.')}
-          </p>
-          <div className="flex items-center gap-4 text-xs text-slate-400">
-            <span>{t('Secure payments')}</span>
-            <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>{t('Instant download')}</span>
-            <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>{t('Lifetime updates')}</span>
+        {footerGroups.map((group) => (
+          <div className="footer-links" key={group.title}>
+            <h2>{t(group.title)}</h2>
+            {group.links.map(([label, page]) => (
+              <button key={page} onClick={() => onNavigate(page)}>{t(label)}<ArrowUpRight size={13} /></button>
+            ))}
           </div>
+        ))}
+        <div className="footer-contact">
+          <h2>{t('Contact')}</h2>
+          <p>Diskusikan kebutuhan produk atau proyek digital Anda.</p>
+          <button className="footer-contact-link" onClick={() => onNavigate('contact')}>Mulai konsultasi <ArrowUpRight size={14} /></button>
         </div>
+      </div>
+      <div className="site-container footer-bottom">
+        <span>&copy; {new Date().getFullYear()} SmartNova. {t('All rights reserved.')}</span>
+        <span>Build Smarter. Grow Faster.</span>
       </div>
     </footer>
   );

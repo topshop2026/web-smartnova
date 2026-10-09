@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { CartDrawer } from '@/components/CartDrawer';
 import { HomePage } from '@/pages/HomePage';
+import { BusinessPage } from '@/pages/BusinessPage';
 import { CatalogPage } from '@/pages/CatalogPage';
 import { ProductDetail } from '@/pages/ProductDetail';
 import { CheckoutPage } from '@/pages/CheckoutPage';
@@ -13,31 +14,112 @@ import { AccountPage } from '@/pages/AccountPage';
 import { OrderHistoryPage } from '@/pages/OrderHistoryPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { AdminPage } from '@/pages/AdminPage';
-import { LanguageProvider } from '@/context/LanguageContext';
+import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
 
-type Page = 'home' | 'catalog' | 'checkout' | 'account' | 'orders' | 'chat' | 'admin';
+type Page =
+  | 'home'
+  | 'catalog'
+  | 'checkout'
+  | 'account'
+  | 'orders'
+  | 'chat'
+  | 'admin'
+  | 'product'
+  | 'services'
+  | 'portfolio'
+  | 'about'
+  | 'contact'
+  | 'privacy'
+  | 'terms'
+  | 'refund'
+  | 'not-found';
 
 function getPageFromLocation(): Page {
   if (new URLSearchParams(window.location.search).has('order_id')) return 'checkout';
   const path = window.location.pathname.replace(/\/$/, '') || '/';
-  if (path === '/catalog') return 'catalog';
-  if (path === '/checkout') return 'checkout';
-  if (path === '/account') return 'account';
-  if (path === '/orders') return 'orders';
-  if (path === '/chat') return 'chat';
-  if (path === '/admin') return 'admin';
-  return 'home';
+  if (/^\/products\/[^/]+$/.test(path)) return 'product';
+  const routes: Record<string, Page> = {
+    '/': 'home',
+    '/catalog': 'catalog',
+    '/checkout': 'checkout',
+    '/account': 'account',
+    '/orders': 'orders',
+    '/chat': 'chat',
+    '/admin': 'admin',
+    '/services': 'services',
+    '/portfolio': 'portfolio',
+    '/about': 'about',
+    '/contact': 'contact',
+    '/privacy': 'privacy',
+    '/terms': 'terms',
+    '/refund': 'refund',
+  };
+  return routes[path] ?? 'not-found';
 }
 
 function AppContent() {
   const [page, setPage] = useState<Page>(getPageFromLocation);
-  const [pageParams, setPageParams] = useState<Record<string, string>>(() => ({
-    product_id: new URLSearchParams(window.location.search).get('product_id') ?? '',
-  }));
+  const [pageParams, setPageParams] = useState<Record<string, string>>(() =>
+    Object.fromEntries(new URLSearchParams(window.location.search))
+  );
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productLoadError, setProductLoadError] = useState('');
   const { addToCart, setCartOpen } = useCart();
+  const { language } = useLanguage();
+
+  useEffect(() => {
+    const pageTitles: Record<Page, [string, string]> = {
+      home: ['Solusi Digital untuk Bisnis', 'Digital Solutions for Business'],
+      catalog: ['Produk Digital', 'Digital Products'],
+      checkout: ['Pemesanan', 'Checkout'],
+      account: ['Akun', 'Account'],
+      orders: ['Riwayat Pesanan', 'Order History'],
+      chat: ['Chat Dukungan', 'Support Chat'],
+      admin: ['Dashboard Admin', 'Admin Dashboard'],
+      product: ['Detail Produk', 'Product Details'],
+      services: ['Jasa Software Engineering', 'Software Engineering Services'],
+      portfolio: ['Portofolio', 'Portfolio'],
+      about: ['Tentang SmartNova', 'About SmartNova'],
+      contact: ['Konsultasi Proyek', 'Project Consultation'],
+      privacy: ['Kebijakan Privasi', 'Privacy Policy'],
+      terms: ['Syarat Layanan', 'Terms of Service'],
+      refund: ['Kebijakan Refund', 'Refund Policy'],
+      'not-found': ['Halaman Tidak Ditemukan', 'Page Not Found'],
+    };
+    const title = pageTitles[page][language === 'id' ? 0 : 1];
+    const documentTitle = selectedProduct
+      ? `${selectedProduct.name} | SmartNova`
+      : `${title} | SmartNova`;
+    document.title = documentTitle;
+    const pageDescription = selectedProduct
+      ? selectedProduct.description
+      : page === 'home'
+        ? 'SmartNova menghadirkan produk digital dan layanan software engineering untuk membantu individu dan UMKM bekerja lebih efisien.'
+        : `${title} SmartNova. Temukan solusi digital, produk, dan layanan yang sesuai dengan kebutuhan Anda.`;
+    const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    if (description) description.content = pageDescription;
+    const openGraphTitle = document.querySelector<HTMLMetaElement>('meta[property="og:title"]');
+    if (openGraphTitle) openGraphTitle.content = documentTitle;
+    const openGraphDescription = document.querySelector<HTMLMetaElement>('meta[property="og:description"]');
+    if (openGraphDescription) openGraphDescription.content = pageDescription;
+    const noIndex = ['admin', 'account', 'orders', 'chat', 'checkout', 'not-found'].includes(page);
+    let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.name = 'robots';
+      document.head.appendChild(robots);
+    }
+    robots.content = noIndex ? 'noindex, nofollow' : 'index, follow';
+    let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = noIndex ? `${window.location.origin}/` : `${window.location.origin}${window.location.pathname}`;
+  }, [language, page, selectedProduct]);
 
   useEffect(() => {
     supabase
@@ -48,23 +130,58 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
+    const productMatch = window.location.pathname.match(/^\/products\/([^/]+)\/?$/);
+    if (page !== 'product' || !productMatch || selectedProduct) return;
+    let active = true;
+    setProductLoadError('');
+    void supabase.from('products').select('*').eq('slug', productMatch[1]).maybeSingle()
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) {
+          console.error('Unable to load product details:', error.message);
+          setProductLoadError('Detail produk gagal dimuat. Silakan coba lagi.');
+          return;
+        }
+        if (data) setSelectedProduct(data as Product);
+        else setProductLoadError('Produk yang Anda cari tidak ditemukan atau tidak lagi tersedia.');
+      });
+    return () => { active = false; };
+  }, [page, selectedProduct]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [page, pageParams]);
 
   useEffect(() => {
     const handlePopState = () => {
       setPage(getPageFromLocation());
-      setPageParams({
-        product_id: new URLSearchParams(window.location.search).get('product_id') ?? '',
-      });
+      setPageParams(Object.fromEntries(new URLSearchParams(window.location.search)));
       setSelectedProduct(null);
+      setProductLoadError('');
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const handleNavigate = useCallback((newPage: string, params: Record<string, string> = {}) => {
-    setPage(newPage as Page);
+    const routes: Record<string, Page> = {
+      home: 'home',
+      catalog: 'catalog',
+      checkout: 'checkout',
+      account: 'account',
+      orders: 'orders',
+      chat: 'chat',
+      admin: 'admin',
+      product: 'product',
+      services: 'services',
+      portfolio: 'portfolio',
+      about: 'about',
+      contact: 'contact',
+      privacy: 'privacy',
+      terms: 'terms',
+      refund: 'refund',
+    };
+    setPage(routes[newPage] ?? 'not-found');
     setPageParams(params);
     setSelectedProduct(null);
     const route = newPage === 'home' ? '/' : `/${newPage}`;
@@ -81,7 +198,11 @@ function AppContent() {
   );
 
   const handleProductClick = useCallback((product: Product) => {
+    setProductLoadError('');
     setSelectedProduct(product);
+    setPage('product');
+    setPageParams({ slug: product.slug });
+    window.history.pushState({}, '', `/products/${encodeURIComponent(product.slug)}`);
   }, []);
 
   const handleOpenProduct = useCallback(async (productId: string) => {
@@ -153,16 +274,44 @@ function AppContent() {
         )}
 
         {page === 'admin' && <AdminPage onBack={() => handleNavigate('home')} />}
+
+        {['services', 'portfolio', 'about', 'contact', 'privacy', 'terms', 'refund', 'not-found'].includes(page) && (
+          <BusinessPage
+            page={page}
+            service={pageParams.service}
+            onNavigate={handleNavigate}
+          />
+        )}
       </main>
 
       <Footer onNavigate={handleNavigate} />
 
       <CartDrawer onCheckout={() => handleNavigate('checkout')} />
 
+      {page === 'product' && !selectedProduct && (
+        <div className="mx-auto w-full max-w-xl px-4 py-24 text-center text-slate-600" role="status">
+          {productLoadError ? (
+            <div role="alert">
+              <p>{productLoadError}</p>
+              <button className="mt-3 text-sm font-semibold text-cyan-800" onClick={() => handleNavigate('catalog')}>Kembali ke produk</button>
+            </div>
+          ) : 'Memuat detail produk...'}
+        </div>
+      )}
+
       {selectedProduct && (
         <ProductDetail
           product={selectedProduct}
-          onClose={() => setSelectedProduct(null)}
+          onClose={() => {
+            if (page === 'product') {
+              setSelectedProduct(null);
+              setPage('catalog');
+              setPageParams({});
+              window.history.replaceState({}, '', '/catalog');
+            } else {
+              setSelectedProduct(null);
+            }
+          }}
           onNavigate={(newPage) => handleNavigate(newPage)}
           onChat={(product) => handleNavigate('chat', { product_id: product.id })}
         />

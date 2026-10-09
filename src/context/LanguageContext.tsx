@@ -7,6 +7,13 @@ const translations: Record<string, string> = {
     'Flash Sale: Diskon hingga 50% untuk semua produk digital — Waktu terbatas!',
   'Search digital products...': 'Cari produk digital...',
   Home: 'Beranda',
+  Products: 'Produk',
+  Services: 'Jasa',
+  Portfolio: 'Portofolio',
+  About: 'Tentang',
+  'Close menu': 'Tutup menu',
+  'Open menu': 'Buka menu',
+  'Open cart': 'Buka keranjang',
   Catalog: 'Katalog',
   Bestsellers: 'Terlaris',
   'New Arrivals': 'Produk Terbaru',
@@ -338,9 +345,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = language;
-    document.title = language === 'id'
-      ? 'SmartNova — Marketplace Produk Digital Premium'
-      : 'SmartNova — Premium Digital Products Marketplace';
     try {
       window.localStorage.setItem('smartnova-language', language);
     } catch {

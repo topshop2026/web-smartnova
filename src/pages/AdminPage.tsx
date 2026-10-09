@@ -7,6 +7,7 @@ import { getOrderStatus, orderStatuses } from '@/lib/orderStatus';
 import { formatPrice } from '@/lib/utils';
 import { getProductImages, parseProductImageUrls, validateProductImageUrls } from '@/lib/productImages';
 import { AdminRevenueOverview } from '@/components/AdminRevenueOverview';
+import { AdminBusinessPanel } from '@/components/AdminBusinessPanel';
 
 type AdminPageProps = {
   onBack: () => void;
@@ -388,6 +389,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
           <p className="mt-1 text-2xl font-bold text-amber-700">{lowStockCount}</p>
         </div>
       </div>
+
+      <AdminBusinessPanel />
 
       {message && <p role="status" className="mb-4 text-sm text-blue-700">{message}</p>}
       <section className="mb-7 rounded-xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm">

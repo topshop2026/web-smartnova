@@ -20,6 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { getLocalizedProduct } from '@/lib/productLocalization';
 import { getProductImages } from '@/lib/productImages';
+import { getWhatsAppUrl, trackEvent } from '@/lib/business';
 import {
   formatPrice,
   calculateDiscount,
@@ -62,6 +63,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
 
   useEffect(() => {
     let active = true;
+    trackEvent('view_product', { product_id: product.slug });
     const loadProductDetails = async () => {
       const reviewRequest = supabase
         .from('product_reviews')
@@ -96,7 +98,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
     };
     void loadProductDetails();
     return () => { active = false; };
-  }, [product.id, userId]);
+  }, [product.id, product.slug, userId]);
 
   useEffect(() => {
     setSelectedImage(firstProductImage);
@@ -110,6 +112,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
   };
 
   const handleBuyNow = () => {
+    trackEvent('click_buy', { product_id: product.slug });
     addToCart(product, { days, features });
     setCartOpen(true);
   };
@@ -155,6 +158,9 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
   const discount = calculateDiscount(product.price, product.original_price);
   const selectedPrice = getProductPrice(product, days, features);
   const outOfStock = product.stock <= 0;
+  const productQuestion = getWhatsAppUrl(
+    `Halo SmartNova, saya ingin bertanya tentang produk ${localizedProduct.name}: ${window.location.href}`
+  );
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm">
@@ -390,6 +396,25 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                     <MessageCircle size={16} /> Chat
                   </button>
                 </div>
+                {productQuestion ? (
+                  <a
+                    href={productQuestion}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => trackEvent('click_whatsapp', { source: 'product', product_id: product.slug })}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                  >
+                    <MessageCircle size={17} /> Tanya produk melalui WhatsApp
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('contact')}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                  >
+                    <MessageCircle size={17} /> Tanya tentang produk ini
+                  </button>
+                )}
               </div>
             </div>
           </div>

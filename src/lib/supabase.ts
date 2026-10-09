@@ -70,6 +70,20 @@ export type EditorialTestimonial = {
   created_at: string;
 };
 
+export type PortfolioProject = {
+  id: string;
+  title: string;
+  summary: string;
+  role: string;
+  technologies: string[];
+  outcomes: string[];
+  image_url: string | null;
+  demo_url: string | null;
+  published: boolean;
+  is_concept: boolean;
+  created_at: string;
+};
+
 export type CartItem = {
   product: Product;
   quantity: number;

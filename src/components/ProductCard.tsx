@@ -4,6 +4,7 @@ import { formatPrice, calculateDiscount, formatNumber } from '@/lib/utils';
 import { StarRating } from './StarRating';
 import { useLanguage } from '@/context/LanguageContext';
 import { getLocalizedProduct } from '@/lib/productLocalization';
+import { trackEvent } from '@/lib/business';
 
 type ProductCardProps = {
   product: Product;
@@ -77,6 +78,7 @@ export function ProductCard({ product, onAddToCart, onChat, onClick }: ProductCa
           <button
             onClick={(e) => {
               e.stopPropagation();
+              trackEvent('click_buy', { product_id: product.slug });
               onAddToCart(product);
             }}
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"

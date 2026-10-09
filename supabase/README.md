@@ -10,6 +10,8 @@ supabase link --project-ref <project-ref>
 supabase db push
 ```
 
+The business leads and portfolio migration creates the `public.leads` and `public.portfolio_projects` tables used by the admin dashboard. Apply the migrations to the same Supabase project configured by the app before using **Prospek & portofolio**. If PostgREST still reports a missing table after the migration succeeds, run `NOTIFY pgrst, 'reload schema';` in the Supabase SQL Editor.
+
 The pricing migration converts the starter catalog at Rp16,000 per USD. It sets the default feature rate to Rp10,000 per feature and default rush surcharges to 50%, 25%, and 10% of the base product price for 1, 2, and 3 days; 7- and 14-day options have no surcharge. Admins can change these values in the app.
 
 The inventory migration gives existing and new products 100 units by default. The admin dashboard is available at `/admin` to add products and edit stock and pricing. Checkout reserves stock atomically; stock is restored if payment fails or expires.
