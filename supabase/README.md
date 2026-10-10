@@ -24,6 +24,8 @@ Editorial testimonials can be added by admins from the admin dashboard. They are
 
 The admin revenue dashboard reports gross revenue from completed, non-refunded payments. A payment completion timestamp is recorded for accurate daily and monthly totals; existing completed orders are backfilled using their order creation date as the best available historical estimate.
 
+Completed payments update product sales counts, including existing completed orders. Buyers can submit one rating and review per product after the order fulfillment status is marked complete; product rating averages and review counts update automatically.
+
 The payment notification migration stores the customer's WhatsApp number and consent timestamp. Checkout requires the customer to opt in before a WhatsApp confirmation can be sent.
 
 ## Configure Midtrans Sandbox

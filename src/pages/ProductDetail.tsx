@@ -48,6 +48,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
   const [testimonialError, setTestimonialError] = useState('');
   const [loading, setLoading] = useState(true);
   const [hasCompletedPurchase, setHasCompletedPurchase] = useState(false);
+  const [reviewEligibilityError, setReviewEligibilityError] = useState('');
   const [hasReviewed, setHasReviewed] = useState(false);
   const [days, setDays] = useState(getDefaultDurationDays(product.duration_prices));
   const [features, setFeatures] = useState(1);
@@ -64,6 +65,10 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
   useEffect(() => {
     let active = true;
     trackEvent('view_product', { product_id: product.slug });
+    setLoading(true);
+    setHasCompletedPurchase(false);
+    setHasReviewed(false);
+    setReviewEligibilityError('');
     const loadProductDetails = async () => {
       const reviewRequest = supabase
         .from('product_reviews')
@@ -76,6 +81,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
             .select('id', { count: 'exact', head: true })
             .eq('user_id', userId)
             .eq('status', 'completed')
+            .eq('fulfillment_status', 'completed')
             .contains('items_json', [{ product_id: product.id }])
         : Promise.resolve({ count: 0, data: null, error: null });
       const testimonialRequest = supabase
@@ -94,11 +100,12 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
       setTestimonialError(testimonialResult.error?.message ?? '');
       setHasReviewed((reviewResult.data || []).some((review) => review.user_id === userId));
       setHasCompletedPurchase((purchaseResult.count ?? 0) > 0);
+      setReviewEligibilityError(purchaseResult.error ? t('Review eligibility could not be checked. Please try again.') : '');
       setLoading(false);
     };
     void loadProductDetails();
     return () => { active = false; };
-  }, [product.id, product.slug, userId]);
+  }, [product.id, product.slug, t, userId]);
 
   useEffect(() => {
     setSelectedImage(firstProductImage);
@@ -425,8 +432,14 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               {t('Customer Reviews')} ({reviews.length})
             </h2>
 
+            {reviewEligibilityError && (
+              <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                {reviewEligibilityError}
+              </p>
+            )}
+
             {/* Write review */}
-            {hasCompletedPurchase && !hasReviewed ? (
+            {!reviewEligibilityError && hasCompletedPurchase && !hasReviewed ? (
               <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <h3 className="mb-3 text-sm font-semibold text-slate-900">{t('Write a Review')}</h3>
                 <div className="space-y-3">
@@ -476,11 +489,11 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                 </button>
                 </div>
               </div>
-            ) : hasCompletedPurchase ? (
+            ) : !reviewEligibilityError && hasCompletedPurchase ? (
               <p className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 {t('You have already reviewed this product.')}
               </p>
-            ) : (
+            ) : !reviewEligibilityError ? (
               <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                 {user ? (
                   t('Reviews are available after this product has a completed purchase on your account.')
@@ -493,7 +506,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                   </span>
                 )}
               </div>
-            )}
+            ) : null}
 
             {/* Reviews list */}
             {loading ? (

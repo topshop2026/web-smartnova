@@ -195,6 +195,24 @@ const translations: Record<string, string> = {
   'Orders for': 'Pesanan untuk',
   'Loading orders...': 'Memuat pesanan...',
   'No orders yet.': 'Belum ada pesanan.',
+  'Your reviews could not be loaded. Please try again.':
+    'Ulasan Anda tidak dapat dimuat. Silakan coba lagi.',
+  'Please write a review before submitting.': 'Silakan tulis ulasan sebelum mengirim.',
+  Buyer: 'Pembeli',
+  'Review Submitted': 'Ulasan Terkirim',
+  'Rate Product': 'Nilai Produk',
+  Close: 'Tutup',
+  'Product Quality': 'Kualitas Produk',
+  stars: 'bintang',
+  'Very Poor': 'Sangat Buruk',
+  Poor: 'Buruk',
+  Fair: 'Cukup',
+  Good: 'Baik',
+  'Very Good': 'Sangat Baik',
+  'Write your review': 'Tulis ulasan Anda',
+  'Share your experience with this product to help other buyers.':
+    'Bagikan pengalaman Anda tentang produk ini untuk membantu pembeli lain.',
+  'Maybe Later': 'Nanti Saja',
   'Order history could not be loaded. Please try again.':
     'Riwayat pesanan tidak dapat dimuat. Silakan coba lagi.',
   'Progress:': 'Progres:',
@@ -219,6 +237,8 @@ const translations: Record<string, string> = {
   'Reviews are available after this product has a completed purchase on your account.':
     'Ulasan tersedia setelah produk ini selesai dibeli melalui akun Anda.',
   'Sign in to check review eligibility.': 'Masuk untuk memeriksa kelayakan ulasan.',
+  'Review eligibility could not be checked. Please try again.':
+    'Kelayakan ulasan tidak dapat diperiksa. Silakan coba lagi.',
   'Back to Catalog': 'Kembali ke Katalog',
   'A completed purchase of this product is required to leave a review.':
     'Anda harus menyelesaikan pembelian produk ini untuk memberikan ulasan.',
@@ -248,7 +268,7 @@ const translations: Record<string, string> = {
   'File Size': 'Ukuran File',
   Sales: 'Penjualan',
   Instant: 'Instan',
-  'Write a Review': 'Tulis Ulasan',
+  'Write a Review': 'Beri Ulasan',
   'Your name': 'Nama Anda',
   'Share your thoughts about this product...': 'Bagikan pendapat Anda tentang produk ini...',
   'No reviews yet. Be the first to review!': 'Belum ada ulasan. Jadilah yang pertama memberi ulasan!',
