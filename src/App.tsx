@@ -75,7 +75,7 @@ function AppContent() {
       catalog: ['Produk Digital', 'Digital Products'],
       checkout: ['Pemesanan', 'Checkout'],
       account: ['Akun', 'Account'],
-      orders: ['Riwayat Pesanan', 'Order History'],
+      orders: ['Pesanan Saya', 'My Orders'],
       chat: ['Chat Dukungan', 'Support Chat'],
       admin: ['Dashboard Admin', 'Admin Dashboard'],
       product: ['Detail Produk', 'Product Details'],
@@ -253,6 +253,7 @@ function AppContent() {
         {page === 'account' && (
           <AccountPage
             onBack={() => handleNavigate('home')}
+            onOrders={() => handleNavigate('orders')}
             onAdmin={() => handleNavigate('admin')}
           />
         )}

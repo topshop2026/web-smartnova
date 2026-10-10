@@ -129,7 +129,7 @@ export function Header({
                   {t(item.label)}<ArrowUpRight size={15} />
                 </button>
               ))}
-              <button onClick={() => navigate('orders')}>{t('Order History')}<ArrowUpRight size={15} /></button>
+              <button onClick={() => navigate('orders')}>{t('My Orders')}<ArrowUpRight size={15} /></button>
               <button onClick={() => navigate('chat')}>{t('Chat')}<ArrowUpRight size={15} /></button>
               {isAdmin && <button onClick={() => navigate('admin')}>{t('Admin')}<ArrowUpRight size={15} /></button>}
             </nav>

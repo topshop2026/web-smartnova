@@ -18,6 +18,8 @@ const translations: Record<string, string> = {
   Bestsellers: 'Terlaris',
   'New Arrivals': 'Produk Terbaru',
   'Order History': 'Riwayat Pemesanan',
+  'My Orders': 'Pesanan Saya',
+  'View your order history and current status.': 'Lihat riwayat dan status pesanan Anda.',
   Chat: 'Chat',
   Account: 'Akun',
   'Sign in': 'Masuk',

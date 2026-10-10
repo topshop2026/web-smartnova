@@ -68,7 +68,7 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
         <ClipboardList size={36} className="mx-auto text-slate-400" />
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">{t('Riwayat Pemesanan')}</h1>
+        <h1 className="mt-4 text-2xl font-bold text-slate-900">{t('My Orders')}</h1>
         <p className="mt-2 text-sm text-slate-500">{t('Masuk ke akun untuk melihat pesanan Anda.')}</p>
         <button onClick={onSignIn} className="mt-6 rounded-lg bg-blue-700 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-800">
           {t('Masuk ke akun')}
@@ -85,7 +85,7 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
       <div className="flex items-center gap-3 border-b border-slate-200 pb-5">
         <ClipboardList size={24} className="text-blue-700" />
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{t('Riwayat Pemesanan')}</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t('My Orders')}</h1>
           <p className="mt-1 text-sm text-slate-500">{t('Pesanan untuk')} {user.email}</p>
         </div>
       </div>

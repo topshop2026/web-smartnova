@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { ArrowLeft, LayoutDashboard, LogOut, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowLeft, ClipboardList, LayoutDashboard, LogOut, ShieldCheck, UserRound } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 
 type AccountPageProps = {
   onBack: () => void;
+  onOrders: () => void;
   onAdmin: () => void;
 };
 
-export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
+export function AccountPage({ onBack, onOrders, onAdmin }: AccountPageProps) {
   const { user, loading, signIn, signUp, resetPassword, updatePassword, signOut } = useAuth();
   const { t } = useLanguage();
   const [mode, setMode] = useState<'signin' | 'register' | 'forgot' | 'reset' | 'reset-complete'>(
@@ -87,6 +88,15 @@ export function AccountPage({ onBack, onAdmin }: AccountPageProps) {
               <ShieldCheck size={16} className="text-emerald-600" />
               {user.app_metadata.role === 'admin' ? t('Administrator') : t('Customer account')}
             </div>
+            <button
+              onClick={onOrders}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
+            >
+              <ClipboardList size={16} /> {t('My Orders')}
+            </button>
+            <p className="mt-2 text-center text-xs text-slate-500">
+              {t('View your order history and current status.')}
+            </p>
             {user.app_metadata.role === 'admin' && (
               <button
                 onClick={onAdmin}

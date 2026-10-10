@@ -1,5 +1,20 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, CheckCircle2, FolderPen, PackagePlus, Plus, Save, Trash2, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  BriefcaseBusiness,
+  CheckCircle2,
+  ClipboardList,
+  LayoutDashboard,
+  LogOut,
+  MessageSquareText,
+  PackagePlus,
+  Plus,
+  Quote,
+  Save,
+  Tags,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Category, type EditorialTestimonial, type Order, type Product } from '@/lib/supabase';
 import { CategoryIcon } from '@/components/CategoryIcon';
@@ -13,14 +28,41 @@ type AdminPageProps = {
   onBack: () => void;
 };
 
+type AdminSection = 'overview' | 'portfolio' | 'leads' | 'categories' | 'products' | 'orders' | 'testimonials';
+
+const adminSections: { id: AdminSection; label: string; icon: typeof LayoutDashboard }[] = [
+  { id: 'overview', label: 'Dashboard overview', icon: LayoutDashboard },
+  { id: 'portfolio', label: 'Portfolio projects', icon: BriefcaseBusiness },
+  { id: 'leads', label: 'Service inquiries', icon: MessageSquareText },
+  { id: 'categories', label: 'Category management', icon: Tags },
+  { id: 'products', label: 'Product management', icon: PackagePlus },
+  { id: 'orders', label: 'Orders / transactions', icon: ClipboardList },
+  { id: 'testimonials', label: 'Editorial testimonials', icon: Quote },
+];
+
+function getAdminSection(): AdminSection {
+  const section = new URLSearchParams(window.location.search).get('section');
+  return adminSections.some((item) => item.id === section) ? section as AdminSection : 'overview';
+}
+
 export function AdminPage({ onBack }: AdminPageProps) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const userId = user?.id;
+  const [activeSection, setActiveSection] = useState<AdminSection>(getAdminSection);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [productOriginal, setProductOriginal] = useState<Product | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [categoryOriginal, setCategoryOriginal] = useState<Category | null>(null);
+  const [productSearch, setProductSearch] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [testimonials, setTestimonials] = useState<EditorialTestimonial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [productsError, setProductsError] = useState('');
+  const [categoriesError, setCategoriesError] = useState('');
+  const [testimonialsError, setTestimonialsError] = useState('');
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [addingProduct, setAddingProduct] = useState(false);
@@ -32,6 +74,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
   const [ordersError, setOrdersError] = useState('');
   const [addingTestimonial, setAddingTestimonial] = useState(false);
+  const [showTestimonialForm, setShowTestimonialForm] = useState(false);
   const [deletingTestimonialId, setDeletingTestimonialId] = useState<string | null>(null);
   const [testimonialForm, setTestimonialForm] = useState({ product_id: '', author_name: '', quote: '' });
   const [message, setMessage] = useState('');
@@ -53,6 +96,19 @@ export function AdminPage({ onBack }: AdminPageProps) {
     tags: '',
   });
 
+  const navigateSection = (section: AdminSection) => {
+    setActiveSection(section);
+    const query = new URLSearchParams(window.location.search);
+    query.set('section', section);
+    window.history.pushState({}, '', `${window.location.pathname}?${query.toString()}`);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => setActiveSection(getAdminSection());
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   useEffect(() => {
     if (user?.app_metadata.role !== 'admin') {
       setLoading(false);
@@ -68,14 +124,14 @@ export function AdminPage({ onBack }: AdminPageProps) {
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('editorial_testimonials').select('*').order('created_at', { ascending: false }),
       ]);
-      if (productResult.error) setMessage(productResult.error.message);
+      setProductsError(productResult.error?.message ?? '');
+      setCategoriesError(categoryResult.error?.message ?? '');
+      setTestimonialsError(testimonialResult.error?.message ?? '');
       if (orderResult.error) {
         setOrdersError(orderResult.error.message);
-        setMessage(orderResult.error.message);
       } else {
         setOrdersError('');
       }
-      if (testimonialResult.error) setMessage(testimonialResult.error.message);
       setProducts((productResult.data as Product[] | null) ?? []);
       setCategories((categoryResult.data as Category[] | null) ?? []);
       setOrders((orderResult.data as Order[] | null) ?? []);
@@ -129,6 +185,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     } else {
       setTestimonials((current) => [data as EditorialTestimonial, ...current]);
       setTestimonialForm({ product_id: '', author_name: '', quote: '' });
+      setShowTestimonialForm(false);
       setMessage('Editorial testimonial added.');
     }
     setAddingTestimonial(false);
@@ -157,6 +214,19 @@ export function AdminPage({ onBack }: AdminPageProps) {
     ));
   };
 
+  const beginEditProduct = (product: Product) => {
+    setProductOriginal(product);
+    setEditingProductId(product.id);
+  };
+
+  const cancelEditProduct = () => {
+    if (productOriginal) {
+      setProducts((current) => current.map((item) => item.id === productOriginal.id ? productOriginal : item));
+    }
+    setProductOriginal(null);
+    setEditingProductId(null);
+  };
+
   const saveProduct = async (product: Product) => {
     const imageUrls = parseProductImageUrls((product.image_urls ?? []).join('\n'));
     if (!validateProductImageUrls([...imageUrls, product.image_url?.trim() ?? ''].filter(Boolean))) {
@@ -183,6 +253,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
     }).eq('id', product.id);
 
     setMessage(error ? error.message : `${product.name} saved.`);
+    if (!error) {
+      setEditingProductId(null);
+      setProductOriginal(null);
+    }
     setSavingId(null);
   };
 
@@ -195,6 +269,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setMessage(error.message);
     } else {
       setProducts((current) => current.filter((item) => item.id !== product.id));
+      setEditingProductId(null);
+      setProductOriginal(null);
       setMessage(`${product.name} deleted from the catalog.`);
     }
     setDeletingId(null);
@@ -204,6 +280,19 @@ export function AdminPage({ onBack }: AdminPageProps) {
     setCategories((current) => current.map((category) =>
       category.id === categoryId ? { ...category, ...changes } : category
     ));
+  };
+
+  const beginEditCategory = (category: Category) => {
+    setCategoryOriginal(category);
+    setEditingCategoryId(category.id);
+  };
+
+  const cancelEditCategory = () => {
+    if (categoryOriginal) {
+      setCategories((current) => current.map((item) => item.id === categoryOriginal.id ? categoryOriginal : item));
+    }
+    setCategoryOriginal(null);
+    setEditingCategoryId(null);
   };
 
   const saveCategory = async (category: Category) => {
@@ -216,6 +305,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
       icon: category.icon.trim() || 'Package',
     }).eq('id', category.id);
     setMessage(error ? error.message : `${category.name} category saved.`);
+    if (!error) {
+      setEditingCategoryId(null);
+      setCategoryOriginal(null);
+    }
     setSavingCategoryId(null);
   };
 
@@ -228,6 +321,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setMessage(error.message);
     } else {
       setCategories((current) => current.filter((item) => item.id !== category.id));
+      setEditingCategoryId(null);
+      setCategoryOriginal(null);
       setMessage(`${category.name} category deleted.`);
     }
     setDeletingCategoryId(null);
@@ -326,6 +421,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
 
   const lowStockCount = products.filter((product) => product.stock <= 5).length;
   const totalStock = products.reduce((total, product) => total + product.stock, 0);
+  const editingCategory = categories.find((category) => category.id === editingCategoryId) ?? null;
+  const visibleProducts = products.filter((product) =>
+    `${product.name} ${product.name_en ?? ''}`.toLowerCase().includes(productSearch.toLowerCase())
+  );
+  const visibleCategories = categories.filter((category) =>
+    `${category.name} ${category.slug}`.toLowerCase().includes(categorySearch.toLowerCase())
+  );
 
   if (user?.app_metadata.role !== 'admin') {
     return (
@@ -337,36 +439,92 @@ export function AdminPage({ onBack }: AdminPageProps) {
     );
   }
 
+  if (loading) {
+    return <div className="mx-auto max-w-4xl px-4 py-20 text-center text-sm text-slate-500" role="status">Loading admin workspace...</div>;
+  }
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <button onClick={onBack} className="mb-5 flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
-        <ArrowLeft size={16} /> Back to store
-      </button>
-      <div className="mb-7 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-700 px-6 py-7 text-white shadow-lg shadow-indigo-200 sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-100">
-              <PackagePlus size={17} /> SmartNova catalog control
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Product dashboard</h1>
-            <p className="mt-2 max-w-xl text-sm text-blue-100">Update your catalog, pricing, and inventory from one colorful workspace.</p>
-          </div>
+    <div className="mx-auto max-w-[1500px] px-3 py-5 sm:px-6 lg:px-8">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">
+          <ArrowLeft size={16} /> Back to store
+        </button>
+        <div className="flex items-center gap-3">
+          <span className="hidden text-sm text-slate-500 sm:inline">{user.email}</span>
           <button
-            onClick={() => setShowAddForm((visible) => !visible)}
-            className="flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm hover:bg-blue-50"
+            onClick={() => void signOut()}
+            className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            {showAddForm ? <X size={16} /> : <Plus size={16} />}
-            {showAddForm ? 'Close form' : 'Add product'}
+            <LogOut size={16} /> Sign out
           </button>
         </div>
       </div>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Catalog overview</h2>
-          <p className="mt-1 text-sm text-slate-500">Manage inventory and pricing in Indonesian rupiah (IDR).</p>
-        </div>
-      </div>
+      <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="self-start rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-24" aria-label="Admin navigation">
+          <div className="px-3 pb-3 pt-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Admin workspace</p>
+          </div>
+          <nav className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:flex lg:flex-col" aria-label="Admin sections">
+            {adminSections.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => navigateSection(id)}
+                aria-current={activeSection === id ? 'page' : undefined}
+                className={`flex items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-medium transition sm:gap-3 sm:text-sm lg:w-full ${
+                  activeSection === id
+                    ? 'bg-blue-50 text-blue-800 ring-1 ring-inset ring-blue-100'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Icon size={17} aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        </aside>
+        <main className="min-w-0">
+          <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">SmartNova admin</p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+                {adminSections.find((item) => item.id === activeSection)?.label}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                {activeSection === 'overview' ? 'Ringkasan performa dan aktivitas toko.' : 'Kelola data dan aktivitas pada bagian ini.'}
+              </p>
+            </div>
+            {activeSection === 'products' && (
+              <button
+                type="button"
+                onClick={() => setShowAddForm(true)}
+                className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
+              >
+                <Plus size={16} /> Add product
+              </button>
+            )}
+            {activeSection === 'categories' && (
+              <button
+                type="button"
+                onClick={() => setShowCategoryForm(true)}
+                className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
+              >
+                <Plus size={16} /> Add category
+              </button>
+            )}
+            {activeSection === 'testimonials' && (
+              <button
+                type="button"
+                onClick={() => setShowTestimonialForm(true)}
+                className="flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
+              >
+                <Plus size={16} /> Add testimonial
+              </button>
+            )}
+          </div>
+          {message && <p role="status" className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">{message}</p>}
 
+          {activeSection === 'overview' && <>
       {ordersError ? (
         <p role="alert" className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
           Revenue overview is unavailable because orders could not be loaded: {ordersError}
@@ -389,18 +547,25 @@ export function AdminPage({ onBack }: AdminPageProps) {
           <p className="mt-1 text-2xl font-bold text-amber-700">{lowStockCount}</p>
         </div>
       </div>
-
-      <AdminBusinessPanel />
-
-      {message && <p role="status" className="mb-4 text-sm text-blue-700">{message}</p>}
+          </>}
+          {activeSection === 'portfolio' && <AdminBusinessPanel section="portfolio" />}
+          {activeSection === 'leads' && <AdminBusinessPanel section="leads" />}
+          {activeSection === 'testimonials' && <>
       <section className="mb-7 rounded-xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm">
+        {testimonialsError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">Editorial testimonials could not be loaded: {testimonialsError}</p>}
         <div className="mb-4">
           <h2 className="text-base font-semibold text-amber-950">Editorial testimonials</h2>
           <p className="mt-1 text-sm text-amber-800">
             These promotional statements are shown separately from verified customer reviews and are labeled “Editorial testimonial.”
           </p>
         </div>
-        <form onSubmit={createEditorialTestimonial} className="grid gap-3 md:grid-cols-2">
+        {showTestimonialForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" role="presentation">
+        <form onSubmit={createEditorialTestimonial} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-5 shadow-xl md:grid md:grid-cols-2">
+          <div className="mb-2 flex items-center justify-between md:col-span-2">
+            <h3 className="font-semibold text-slate-900">Add editorial testimonial</h3>
+            <button type="button" onClick={() => setShowTestimonialForm(false)} aria-label="Close form" className="rounded p-1 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
+          </div>
           <label className="text-xs font-medium text-slate-600">
             Product
             <select
@@ -438,15 +603,16 @@ export function AdminPage({ onBack }: AdminPageProps) {
             />
           </label>
           <div className="md:col-span-2">
-            <button
-              type="submit"
-              disabled={addingTestimonial}
-              className="flex items-center gap-2 rounded-md bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50"
-            >
-              <Plus size={16} /> {addingTestimonial ? 'Adding...' : 'Add editorial testimonial'}
-            </button>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowTestimonialForm(false)} className="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700">Cancel</button>
+              <button type="submit" disabled={addingTestimonial} className="flex items-center gap-2 rounded-md bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-800 disabled:opacity-50">
+                <Plus size={16} /> {addingTestimonial ? 'Adding...' : 'Add editorial testimonial'}
+              </button>
+            </div>
           </div>
         </form>
+        </div>
+        )}
         <div className="mt-4 space-y-2">
           {testimonials.map((testimonial) => {
             const testimonialProduct = products.find((product) => product.id === testimonial.product_id);
@@ -475,7 +641,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
           })}
         </div>
       </section>
-      <section className="mb-7 rounded-xl border border-cyan-100 bg-cyan-50/60 p-5 shadow-sm">
+          </>}
+          {activeSection === 'orders' && <section className="mb-7 rounded-xl border border-cyan-100 bg-white p-5 shadow-sm">
+        {ordersError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">Orders could not be loaded: {ordersError}</p>}
         <div className="flex items-center gap-2 text-sm font-semibold text-cyan-900">
           <PackagePlus size={17} /> Status Order
         </div>
@@ -530,25 +698,23 @@ export function AdminPage({ onBack }: AdminPageProps) {
             );
           })}
         </div>
-      </section>
-      <section className="mb-7 rounded-xl border border-violet-100 bg-violet-50/60 p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-semibold text-violet-900">
-              <FolderPen size={17} /> Category management
-            </div>
-            <p className="mt-1 text-xs text-violet-700">Add, edit, or remove the categories used by your products.</p>
-          </div>
-          <button
-            onClick={() => setShowCategoryForm((visible) => !visible)}
-            className="flex items-center gap-2 rounded-md bg-violet-700 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-800"
-          >
-            {showCategoryForm ? <X size={16} /> : <Plus size={16} />}
-            {showCategoryForm ? 'Close' : 'Add category'}
-          </button>
+      </section>}
+          {activeSection === 'categories' && <section className="mb-7 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        {categoriesError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">Categories could not be loaded: {categoriesError}</p>}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-500">Add, edit, or remove categories used by your products.</p>
+          <label className="relative block w-full sm:w-72">
+            <span className="sr-only">Search categories</span>
+            <input value={categorySearch} onChange={(event) => setCategorySearch(event.target.value)} placeholder="Search categories..." className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500" />
+          </label>
         </div>
         {showCategoryForm && (
-          <form onSubmit={createCategory} className="mt-5 grid gap-3 border-t border-violet-200 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <form onSubmit={createCategory} className="grid max-h-[90vh] w-full max-w-2xl gap-4 overflow-y-auto rounded-xl bg-white p-5 shadow-xl sm:grid-cols-2">
+            <div className="flex items-center justify-between sm:col-span-2">
+              <h3 className="font-semibold text-slate-900">Add category</h3>
+              <button type="button" onClick={() => setShowCategoryForm(false)} aria-label="Close form" className="rounded p-1 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
+            </div>
             <label className="text-xs font-medium text-slate-600">
               Category name
               <input required value={newCategory.name} onChange={(event) => setNewCategory({ ...newCategory, name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
@@ -565,61 +731,66 @@ export function AdminPage({ onBack }: AdminPageProps) {
               Description
               <input value={newCategory.description} onChange={(event) => setNewCategory({ ...newCategory, description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
-            <div className="flex justify-end sm:col-span-2 lg:col-span-4">
-              <button type="submit" disabled={addingCategory} className="flex items-center gap-2 rounded-md bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-50">
+            <div className="flex justify-end gap-2 sm:col-span-2">
+              <button type="button" onClick={() => setShowCategoryForm(false)} className="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700">Cancel</button>
+              <button type="submit" disabled={addingCategory} className="flex items-center gap-2 rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
                 <Plus size={16} /> {addingCategory ? 'Adding...' : 'Create category'}
               </button>
             </div>
           </form>
+          </div>
         )}
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {categories.map((category) => (
-            <div key={category.id} className="rounded-lg border border-violet-100 bg-white p-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-medium text-slate-600">
-                  Name
-                  <input value={category.name} onChange={(event) => updateCategory(category.id, { name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm font-semibold text-slate-900" />
-                </label>
-                <label className="text-xs font-medium text-slate-600">
-                  Slug
-                  <input value={category.slug} onChange={(event) => updateCategory(category.id, { slug: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
-                </label>
-                <label className="text-xs font-medium text-slate-600 sm:col-span-2">
-                  Description
-                  <input value={category.description ?? ''} onChange={(event) => updateCategory(category.id, { description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
-                </label>
-                <label className="text-xs font-medium text-slate-600 sm:col-span-2">
-                  Icon name or public image URL
-                  <input value={category.icon} onChange={(event) => updateCategory(category.id, { icon: event.target.value })} placeholder="Package or https://..." className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900" />
-                </label>
+        {visibleCategories.length ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            {visibleCategories.map((category) => (
+              <article key={category.id} className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 p-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <CategoryIcon value={category.icon} size={24} alt={`${category.name} icon`} className="h-11 w-11 shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-2 object-contain" onLoadError={() => setMessage('Category icon could not be loaded. Check the public image URL.')} />
+                  <div className="min-w-0">
+                    <h3 className="truncate font-semibold text-slate-900">{category.name}</h3>
+                    <p className="truncate text-xs text-slate-500">/{category.slug} · {products.filter((product) => product.category_id === category.id).length} products</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={() => beginEditCategory(category)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Edit</button>
+                  <button type="button" onClick={() => void deleteCategory(category)} disabled={deletingCategoryId === category.id} aria-label={`Delete ${category.name}`} className="rounded-md border border-rose-200 p-2 text-rose-700 hover:bg-rose-50 disabled:opacity-50"><Trash2 size={15} /></button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : <p className="rounded-lg bg-slate-50 p-6 text-center text-sm text-slate-500">{categoriesError ? 'Categories are unavailable until the load issue is resolved.' : categories.length ? 'No categories match your search.' : 'No categories yet. Add your first category.'}</p>}
+        {editingCategory && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+            <form onSubmit={(event) => { event.preventDefault(); void saveCategory(editingCategory); }} className="grid max-h-[90vh] w-full max-w-2xl gap-4 overflow-y-auto rounded-xl bg-white p-5 shadow-xl sm:grid-cols-2">
+              <div className="flex items-center justify-between sm:col-span-2">
+                <h3 className="font-semibold text-slate-900">Edit category</h3>
+                <button type="button" onClick={cancelEditCategory} aria-label="Close form" className="rounded p-1 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
               </div>
-              <div className="mt-3 flex items-center gap-2">
-                <CategoryIcon
-                  value={category.icon}
-                  size={24}
-                  alt="Category icon preview"
-                  className="h-14 w-14 rounded-lg border border-slate-200 bg-slate-50 p-2 object-contain"
-                  onLoadError={() => setMessage('Category icon could not be loaded. Check that the image URL is public and points directly to an image.')}
-                />
-                <p className="text-xs text-slate-500">
-                  Use a publicly accessible direct image URL. Google Drive file-sharing links are converted to image URLs.
-                </p>
+              <label className="text-xs font-medium text-slate-600">Name<input required value={editingCategory.name} onChange={(event) => updateCategory(editingCategory.id, { name: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="text-xs font-medium text-slate-600">Slug<input required value={editingCategory.slug} onChange={(event) => updateCategory(editingCategory.id, { slug: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="text-xs font-medium text-slate-600 sm:col-span-2">Description<input value={editingCategory.description ?? ''} onChange={(event) => updateCategory(editingCategory.id, { description: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" /></label>
+              <label className="text-xs font-medium text-slate-600 sm:col-span-2">Icon name or public image URL<input value={editingCategory.icon} onChange={(event) => updateCategory(editingCategory.id, { icon: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" /></label>
+              <div className="flex items-center gap-3 sm:col-span-2">
+                <CategoryIcon value={editingCategory.icon} size={24} alt="Category icon preview" className="h-12 w-12 rounded-lg border border-slate-200 bg-slate-50 p-2 object-contain" onLoadError={() => setMessage('Category icon could not be loaded. Check that the image URL is public and points directly to an image.')} />
+                <p className="text-xs text-slate-500">Use a public direct image URL. Google Drive sharing links are converted automatically.</p>
               </div>
-              <div className="mt-3 flex justify-end gap-2">
-                <button onClick={() => void saveCategory(category)} disabled={savingCategoryId === category.id || deletingCategoryId === category.id} className="flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
-                  <Save size={14} /> Save
-                </button>
-                <button onClick={() => void deleteCategory(category)} disabled={savingCategoryId === category.id || deletingCategoryId === category.id} className="flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
-                  <Trash2 size={14} /> Delete
-                </button>
+              <div className="flex justify-end gap-2 sm:col-span-2">
+                <button type="button" onClick={cancelEditCategory} className="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700">Cancel</button>
+                <button type="submit" disabled={savingCategoryId === editingCategory.id} className="flex items-center gap-2 rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"><Save size={15} />{savingCategoryId === editingCategory.id ? 'Saving...' : 'Save category'}</button>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            </form>
+          </div>
+        )}
+      </section>}
+          {activeSection === 'products' && <>
+      {productsError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">Products could not be loaded: {productsError}</p>}
       {showAddForm && (
-        <form onSubmit={createProduct} className="mb-7 rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+        <form onSubmit={createProduct} className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
+          <div className="mb-4 flex items-center justify-between">
           <h2 className="mb-4 text-base font-semibold text-slate-900">New product</h2>
+          <button type="button" onClick={() => setShowAddForm(false)} aria-label="Close form" className="rounded p-1 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <label className="text-xs font-medium text-slate-600">
               Product name (Indonesian)
@@ -687,14 +858,42 @@ export function AdminPage({ onBack }: AdminPageProps) {
             </button>
           </div>
         </form>
+        </div>
       )}
 
       {loading ? (
         <p className="py-12 text-center text-sm text-slate-500">Loading products...</p>
       ) : (
-        <div className="space-y-4">
-          {products.map((product) => (
-            <section key={product.id} className="space-y-4 rounded-xl border border-slate-200 border-l-4 border-l-blue-500 bg-white p-5 shadow-sm transition hover:shadow-md">
+        <div>
+          <label className="mb-4 block max-w-sm">
+            <span className="sr-only">Search products</span>
+            <input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Search products..." className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500" />
+          </label>
+          {visibleProducts.length ? <div className="space-y-3">
+          {visibleProducts.map((product) => (
+            <div key={product.id}>
+              <article className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex min-w-0 items-center gap-3">
+                  {product.image_url && <img src={product.image_url} alt="" className="h-12 w-12 shrink-0 rounded-lg border border-slate-200 object-cover" />}
+                  <div className="min-w-0">
+                    <h2 className="truncate font-semibold text-slate-900">{product.name}</h2>
+                    <p className="mt-1 text-xs text-slate-500">{formatPrice(product.price)} · Stock {product.stock}{product.category_id ? ` · ${categories.find((category) => category.id === product.category_id)?.name ?? ''}` : ''}</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={() => beginEditProduct(product)} className="rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Edit</button>
+                  <button type="button" onClick={() => void deleteProduct(product)} disabled={deletingId === product.id} aria-label={`Delete ${product.name}`} className="rounded-md border border-rose-200 p-2 text-rose-700 hover:bg-rose-50 disabled:opacity-50"><Trash2 size={15} /></button>
+                </div>
+              </article>
+              {editingProductId === product.id && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+            <form
+              onSubmit={(event) => { event.preventDefault(); void saveProduct(product); }}
+              className="max-h-[92vh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-slate-900">Edit product</h2>
+                <button type="button" onClick={cancelEditProduct} aria-label="Close form" className="rounded p-1 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
+              </div>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-[minmax(180px,1fr)_150px_150px_125px_2fr_auto] lg:items-end">
               <div className="min-w-0">
                 <label className="text-xs font-medium text-slate-600">
@@ -780,24 +979,15 @@ export function AdminPage({ onBack }: AdminPageProps) {
               </fieldset>
               <div className="flex gap-2 lg:flex-col">
                 <button
-                  onClick={() => void saveProduct(product)}
+                  type="submit"
                   disabled={savingId === product.id || deletingId === product.id}
-                  aria-label={`Save changes for ${product.name}`}
-                  title="Save changes"
                   className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {savingId === product.id ? <CheckCircle2 size={17} /> : <Save size={17} />}
-                  <span className="lg:hidden">Save</span>
+                  <span>Save</span>
                 </button>
-                <button
-                  onClick={() => void deleteProduct(product)}
-                  disabled={savingId === product.id || deletingId === product.id}
-                  aria-label={`Delete ${product.name}`}
-                  title="Delete product"
-                  className="flex h-10 flex-1 items-center justify-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                >
-                  <Trash2 size={17} />
-                  <span className="lg:hidden">Delete</span>
+                <button type="button" onClick={cancelEditProduct} className="flex h-10 flex-1 items-center justify-center rounded-md border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                  Cancel
                 </button>
               </div>
               </div>
@@ -884,10 +1074,16 @@ export function AdminPage({ onBack }: AdminPageProps) {
                   ))}
                 </div>
               </div>
-            </section>
+            </form>
+            </div>}
+            </div>
           ))}
+          </div> : <p className="rounded-lg bg-slate-50 p-6 text-center text-sm text-slate-500">{productsError ? 'Products are unavailable until the load issue is resolved.' : products.length ? 'No products match your search.' : 'No products yet. Add your first product.'}</p>}
         </div>
       )}
+          </>}
+        </main>
+      </div>
     </div>
   );
 }

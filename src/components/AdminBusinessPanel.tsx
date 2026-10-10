@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Check, Plus, Save, Trash2 } from 'lucide-react';
+import { Check, Plus, Save, Trash2, X } from 'lucide-react';
 import { supabase, type PortfolioProject } from '@/lib/supabase';
 import { getSafeExternalUrl } from '@/lib/business';
 
@@ -30,11 +30,16 @@ const emptyProject = {
 
 const leadStatuses: Lead['status'][] = ['new', 'contacted', 'qualified', 'closed'];
 
-export function AdminBusinessPanel() {
+type AdminBusinessPanelProps = {
+  section: 'portfolio' | 'leads';
+};
+
+export function AdminBusinessPanel({ section }: AdminBusinessPanelProps) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
   const [projectForm, setProjectForm] = useState(emptyProject);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showProjectForm, setShowProjectForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -70,6 +75,7 @@ export function AdminBusinessPanel() {
 
   const editProject = (project: PortfolioProject) => {
     setEditingId(project.id);
+    setShowProjectForm(true);
     setProjectForm({
       title: project.title,
       summary: project.summary,
@@ -86,6 +92,7 @@ export function AdminBusinessPanel() {
   const resetProjectForm = () => {
     setEditingId(null);
     setProjectForm(emptyProject);
+    setShowProjectForm(false);
   };
 
   const saveProject = async (event: FormEvent<HTMLFormElement>) => {
@@ -145,15 +152,27 @@ export function AdminBusinessPanel() {
   };
 
   return (
-    <section className="mb-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div><h2 className="text-xl font-bold text-slate-900">Prospek &amp; portofolio</h2><p className="mt-1 text-sm text-slate-500">Kelola permintaan konsultasi dan studi kasus yang sudah siap dipublikasikan.</p></div>
-        <button type="button" onClick={() => void loadContent()} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Muat ulang</button>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">{section === 'portfolio' ? 'Portfolio projects' : 'Service inquiries'}</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {section === 'portfolio' ? 'Kelola studi kasus dan proyek yang ditampilkan di portofolio.' : 'Tinjau permintaan konsultasi dan perbarui status prospek.'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {section === 'portfolio' && (
+            <button type="button" onClick={() => { resetProjectForm(); setShowProjectForm(true); }} className="flex items-center gap-2 rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800">
+              <Plus size={15} /> Tambah proyek
+            </button>
+          )}
+          <button type="button" onClick={() => void loadContent()} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Muat ulang</button>
+        </div>
       </div>
       {message && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900" role="status">{message}</p>}
       {loading ? <p className="text-sm text-slate-500">Memuat data bisnis...</p> : (
         <>
-          <div className="mb-8 overflow-x-auto">
+          {section === 'leads' && <div className="overflow-x-auto">
             <h3 className="mb-3 text-base font-semibold text-slate-900">Kotak masuk konsultasi</h3>
             {leadsError ? (
               <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
@@ -173,11 +192,11 @@ export function AdminBusinessPanel() {
                 ))}</tbody>
               </table>
             ) : <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">Belum ada permintaan konsultasi.</p>}
-          </div>
+          </div>}
 
-          <div className="grid gap-7 border-t border-slate-200 pt-7 lg:grid-cols-[1.15fr_.85fr]">
+          {section === 'portfolio' && <div>
             <div>
-              <h3 className="mb-3 text-base font-semibold text-slate-900">Proyek portofolio</h3>
+              <h3 className="mb-3 text-base font-semibold text-slate-900">Daftar proyek</h3>
               {projectsError ? (
                 <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                   Proyek portofolio tidak dapat dimuat. Pastikan migrasi database terbaru sudah diterapkan: {projectsError}
@@ -190,8 +209,14 @@ export function AdminBusinessPanel() {
                 </article>
               ))}</div> : <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">Belum ada proyek. Tambahkan studi kasus dengan informasi yang sudah diverifikasi.</p>}
             </div>
-            <form className="grid content-start gap-3 rounded-xl bg-slate-50 p-4" onSubmit={saveProject}>
+          </div>}
+          {section === 'portfolio' && showProjectForm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+            <form className="grid max-h-[90vh] w-full max-w-2xl content-start gap-3 overflow-y-auto rounded-xl bg-white p-5 shadow-xl" onSubmit={saveProject}>
+              <div className="flex items-center justify-between">
               <h3 className="flex items-center gap-2 font-semibold text-slate-900">{editingId ? <Save size={16} /> : <Plus size={17} />}{editingId ? 'Edit proyek' : 'Tambah proyek'}</h3>
+              <button type="button" onClick={resetProjectForm} aria-label="Tutup formulir" className="rounded p-1 text-slate-500 hover:bg-slate-100"><X size={18} /></button>
+              </div>
               <label className="grid gap-1 text-xs font-medium text-slate-600">Judul<input required maxLength={160} value={projectForm.title} onChange={(event) => setProjectForm({ ...projectForm, title: event.target.value })} className="rounded border border-slate-300 bg-white p-2 text-sm" /></label>
               <label className="grid gap-1 text-xs font-medium text-slate-600">Ringkasan<textarea required minLength={10} maxLength={1200} rows={3} value={projectForm.summary} onChange={(event) => setProjectForm({ ...projectForm, summary: event.target.value })} className="rounded border border-slate-300 bg-white p-2 text-sm" /></label>
               <label className="grid gap-1 text-xs font-medium text-slate-600">Peran SmartNova<input required maxLength={160} value={projectForm.role} onChange={(event) => setProjectForm({ ...projectForm, role: event.target.value })} className="rounded border border-slate-300 bg-white p-2 text-sm" /></label>
@@ -203,7 +228,8 @@ export function AdminBusinessPanel() {
               <label className="flex items-center gap-2 text-xs text-slate-600"><input type="checkbox" checked={projectForm.published} onChange={(event) => setProjectForm({ ...projectForm, published: event.target.checked })} />Saya sudah memastikan informasi ini boleh dipublikasikan.</label>
               <div className="flex flex-wrap gap-2"><button type="submit" disabled={saving} className="flex items-center gap-2 rounded-lg bg-cyan-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"><Check size={14} />{saving ? 'Menyimpan...' : 'Simpan proyek'}</button>{editingId && <button type="button" onClick={resetProjectForm} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700">Batal</button>}</div>
             </form>
-          </div>
+            </div>
+          )}
         </>
       )}
     </section>
