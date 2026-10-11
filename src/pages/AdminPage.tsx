@@ -842,6 +842,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
             <label className="text-xs font-medium text-slate-600 sm:col-span-2">
               Main image URL
               <input type="url" value={newProduct.image_url} onChange={(event) => setNewProduct({ ...newProduct, image_url: event.target.value })} placeholder="https://example.com/image.jpg" className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <span className="mt-1 block text-xs text-slate-500">Recommended: 1200 x 900 px (4:3). The detail view scales the full image to fit.</span>
             </label>
             <label className="text-xs font-medium text-slate-600 sm:col-span-2">
               Additional image URLs (one URL per line)
@@ -1046,6 +1047,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
                     placeholder="https://example.com/image.jpg"
                     className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm"
                   />
+                  <span className="mt-1 block text-xs text-slate-500">Recommended: 1200 x 900 px (4:3). The detail view scales the full image to fit.</span>
                 </label>
                 <label className="text-xs font-medium text-slate-600">
                   Additional image URLs (one URL per line)

@@ -277,6 +277,7 @@ const translations: Record<string, string> = {
   'Add to Cart': 'Tambah ke Keranjang',
   'Buy Now': 'Beli Sekarang',
   'Customer Reviews': 'Ulasan Pelanggan',
+  'Product Description': 'Deskripsi Produk',
   'Editorial testimonials': 'Testimoni editorial',
   'Editorial testimonial': 'Testimoni editorial',
   'Editorial testimonials could not be loaded.':

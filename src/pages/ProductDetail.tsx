@@ -182,90 +182,79 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
           </button>
 
           <div className="grid grid-cols-1 md:grid-cols-2">
-            {/* Image */}
-            <div className="relative aspect-[4/3] bg-slate-100 md:aspect-auto">
-              {selectedImage ? (
-                <img
-                  src={selectedImage}
-                  alt={localizedProduct.name}
-                  className="h-full w-full object-cover"
-                  onError={() => {
-                    const unavailable = new Set([...failedImages, selectedImage]);
-                    setFailedImages([...unavailable]);
-                    setSelectedImage(productImages.find((image) => !unavailable.has(image)) ?? '');
-                  }}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-slate-300">
-                  <Download size={64} />
+            {/* Product gallery */}
+            <div className="min-w-0">
+              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                {selectedImage ? (
+                  <img
+                    src={selectedImage}
+                    alt={localizedProduct.name}
+                    className="h-full w-full object-contain"
+                    onError={() => {
+                      const unavailable = new Set([...failedImages, selectedImage]);
+                      setFailedImages([...unavailable]);
+                      setSelectedImage(productImages.find((image) => !unavailable.has(image)) ?? '');
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-slate-300">
+                    <Download size={64} />
+                  </div>
+                )}
+
+                <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                  {product.is_new && (
+                    <span className="rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
+                      {t('New')}
+                    </span>
+                  )}
+                  {product.is_bestseller && (
+                    <span className="rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
+                      {t('Bestseller')}
+                    </span>
+                  )}
+                  {discount > 0 && (
+                    <span className="rounded-full bg-rose-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
+                      -{discount}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              {productImages.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto border-t border-slate-100 bg-white p-3">
+                  {productImages.map((image, index) => (
+                    <button
+                      key={image}
+                      type="button"
+                      onClick={() => setSelectedImage(image)}
+                      aria-label={`${t('View product image')} ${index + 1}`}
+                      aria-pressed={selectedImage === image}
+                      className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                        selectedImage === image ? 'border-blue-600' : 'border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {failedImages.includes(image) ? (
+                        <span className="flex h-full w-full items-center justify-center bg-slate-100 text-xs text-slate-500">
+                          {t('Unavailable')}
+                        </span>
+                      ) : (
+                        <img
+                          src={image}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          onError={() => setFailedImages((current) => [...new Set([...current, image])])}
+                        />
+                      )}
+                    </button>
+                  ))}
                 </div>
               )}
-
-              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                {product.is_new && (
-                  <span className="rounded-full bg-emerald-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
-                    {t('New')}
-                  </span>
-                )}
-                {product.is_bestseller && (
-                  <span className="rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
-                    {t('Bestseller')}
-                  </span>
-                )}
-                {discount > 0 && (
-                  <span className="rounded-full bg-rose-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
-                    -{discount}%
-                  </span>
-                )}
-              </div>
             </div>
-            {productImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto border-t border-slate-100 bg-white p-3 md:col-start-1">
-                {productImages.map((image, index) => (
-                  <button
-                    key={image}
-                    type="button"
-                    onClick={() => setSelectedImage(image)}
-                    aria-label={`${t('View product image')} ${index + 1}`}
-                    aria-pressed={selectedImage === image}
-                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition ${
-                      selectedImage === image ? 'border-blue-600' : 'border-slate-200 hover:border-blue-300'
-                    }`}
-                  >
-                    {failedImages.includes(image) ? (
-                      <span className="flex h-full w-full items-center justify-center bg-slate-100 text-xs text-slate-500">
-                        {t('Unavailable')}
-                      </span>
-                    ) : (
-                      <img
-                        src={image}
-                        alt=""
-                        className="h-full w-full object-cover"
-                        onError={() => setFailedImages((current) => [...new Set([...current, image])])}
-                      />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
 
-            {/* Info */}
+            {/* Purchase information */}
             <div className="flex flex-col p-6">
-              <div className="mb-2 flex items-center gap-2">
-                <StarRating rating={product.rating} size={16} />
-                <span className="text-sm text-slate-600">
-                  {product.rating.toFixed(1)} ({formatNumber(product.review_count)} {t('reviews')})
-                </span>
-              </div>
-
-              <h1 className="text-2xl font-bold text-slate-900">{localizedProduct.name}</h1>
-
-              <p className="mt-3 text-sm leading-relaxed text-slate-600">
-                {localizedProduct.description}
-              </p>
-
               {/* Product details */}
-              <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2 rounded-lg bg-slate-50 p-3">
                   <FileText size={18} className="text-slate-400" />
                   <div>
@@ -425,6 +414,26 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
               </div>
             </div>
           </div>
+
+          <section className="border-t border-slate-200 p-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <StarRating rating={product.rating} size={16} />
+              <span className="text-sm text-slate-600">
+                {product.rating.toFixed(1)} ({formatNumber(product.review_count)} {t('reviews')})
+              </span>
+            </div>
+            <h1 className="mt-3 text-xl font-bold text-slate-900 sm:text-2xl">
+              {localizedProduct.name}
+            </h1>
+            <div className="mt-4">
+              <h2 className="bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+                {t('Product Description')}
+              </h2>
+              <p className="whitespace-pre-line px-2 py-5 text-sm leading-relaxed text-slate-600">
+                {localizedProduct.description}
+              </p>
+            </div>
+          </section>
 
           {/* Reviews section */}
           <div className="border-t border-slate-200 p-6">
