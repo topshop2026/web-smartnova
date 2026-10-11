@@ -87,6 +87,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
     description_en: '',
     category_id: '',
     price: 0,
+    original_price: '',
     feature_price: 10000,
     stock: 100,
     image_url: '',
@@ -94,6 +95,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
     file_type: 'ZIP',
     file_size: '1 MB',
     tags: '',
+    is_featured: false,
+    is_bestseller: false,
+    is_new: true,
   });
 
   const navigateSection = (section: AdminSection) => {
@@ -233,6 +237,10 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setMessage(`Images for "${product.name}" must use valid public HTTP or HTTPS URLs.`);
       return;
     }
+    if (product.original_price !== null && product.original_price <= product.price) {
+      setMessage(`Original price for "${product.name}" must be higher than its current price to show a discount.`);
+      return;
+    }
 
     setSavingId(product.id);
     setMessage('');
@@ -247,9 +255,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
       file_type: product.file_type?.trim() || null,
       tags: (product.tags ?? []).map((tag) => tag.trim()).filter(Boolean),
       price: product.price,
+      original_price: product.original_price,
       feature_price: product.feature_price,
       duration_prices: product.duration_prices,
       stock: product.stock,
+      is_featured: product.is_featured,
+      is_bestseller: product.is_bestseller,
+      is_new: product.is_new,
     }).eq('id', product.id);
 
     setMessage(error ? error.message : `${product.name} saved.`);
@@ -372,6 +384,12 @@ export function AdminPage({ onBack }: AdminPageProps) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
     const basePrice = Number(newProduct.price);
+    const originalPrice = newProduct.original_price === '' ? null : Number(newProduct.original_price);
+    if (originalPrice !== null && originalPrice <= basePrice) {
+      setMessage('Original price must be higher than the current price to show a discount.');
+      setAddingProduct(false);
+      return;
+    }
     const duration_prices = [
       { days: 1, surcharge: Math.round(basePrice * 0.5 / 1000) * 1000 },
       { days: 2, surcharge: Math.round(basePrice * 0.25 / 1000) * 1000 },
@@ -387,7 +405,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
       description_en: newProduct.description_en.trim() || null,
       category_id: newProduct.category_id || null,
       price: basePrice,
-      original_price: null,
+      original_price: originalPrice,
       feature_price: Number(newProduct.feature_price),
       duration_prices,
       stock: Number(newProduct.stock),
@@ -400,9 +418,9 @@ export function AdminPage({ onBack }: AdminPageProps) {
       rating: 0,
       review_count: 0,
       sales_count: 0,
-      is_featured: false,
-      is_bestseller: false,
-      is_new: true,
+      is_featured: newProduct.is_featured,
+      is_bestseller: newProduct.is_bestseller,
+      is_new: newProduct.is_new,
     }).select('*').single();
 
     if (error) {
@@ -411,7 +429,8 @@ export function AdminPage({ onBack }: AdminPageProps) {
       setProducts((current) => [...current, data as Product].sort((left, right) => left.name.localeCompare(right.name)));
       setNewProduct({
         name: '', name_en: '', slug: '', description: '', description_en: '', category_id: '', price: 0,
-        feature_price: 10000, stock: 100, image_url: '', image_urls: '', file_type: 'ZIP', file_size: '1 MB', tags: '',
+        original_price: '', feature_price: 10000, stock: 100, image_url: '', image_urls: '', file_type: 'ZIP', file_size: '1 MB', tags: '',
+        is_featured: false, is_bestseller: false, is_new: true,
       });
       setShowAddForm(false);
       setMessage(`${name} added to the catalog.`);
@@ -812,8 +831,13 @@ export function AdminPage({ onBack }: AdminPageProps) {
               </select>
             </label>
             <label className="text-xs font-medium text-slate-600">
-              Base price (IDR)
+              Current price (IDR)
               <input required type="number" min="1" step="1000" value={newProduct.price} onChange={(event) => setNewProduct({ ...newProduct, price: Number(event.target.value) })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <label className="text-xs font-medium text-slate-600">
+              Original price before discount (optional)
+              <input type="number" min="0" step="1000" value={newProduct.original_price} onChange={(event) => setNewProduct({ ...newProduct, original_price: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <span className="mt-1 block text-xs text-slate-500">Enter a value higher than the current price to display a discount.</span>
             </label>
             <label className="text-xs font-medium text-slate-600">
               Stock
@@ -852,6 +876,23 @@ export function AdminPage({ onBack }: AdminPageProps) {
               Tags (comma separated)
               <input value={newProduct.tags} onChange={(event) => setNewProduct({ ...newProduct, tags: event.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
+            <fieldset className="sm:col-span-2 lg:col-span-4">
+              <legend className="mb-2 text-xs font-medium text-slate-600">Product visibility and promotion</legend>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={newProduct.is_featured} onChange={(event) => setNewProduct({ ...newProduct, is_featured: event.target.checked })} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  Popular / Featured
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={newProduct.is_bestseller} onChange={(event) => setNewProduct({ ...newProduct, is_bestseller: event.target.checked })} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  Bestseller
+                </label>
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <input type="checkbox" checked={newProduct.is_new} onChange={(event) => setNewProduct({ ...newProduct, is_new: event.target.checked })} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                  New arrival
+                </label>
+              </div>
+            </fieldset>
           </div>
           <div className="mt-4 flex justify-end">
             <button type="submit" disabled={addingProduct} className="flex items-center gap-2 rounded-md bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50">
@@ -909,13 +950,26 @@ export function AdminPage({ onBack }: AdminPageProps) {
                 <p className="mt-1 text-xs text-slate-500">Base: {formatPrice(product.price)}</p>
               </div>
               <label className="text-xs font-medium text-slate-600">
-                Base price
+                Current price
+                <input
+                  type="number"
+                  min="1"
+                  step="1000"
+                  value={product.price}
+                  onChange={(event) => updateProduct(product.id, { price: Number(event.target.value) })}
+                  className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900"
+                />
+              </label>
+              <label className="text-xs font-medium text-slate-600">
+                Original price before discount
                 <input
                   type="number"
                   min="0"
                   step="1000"
-                  value={product.price}
-                  onChange={(event) => updateProduct(product.id, { price: Number(event.target.value) })}
+                  value={product.original_price ?? ''}
+                  onChange={(event) => updateProduct(product.id, {
+                    original_price: event.target.value === '' ? null : Number(event.target.value),
+                  })}
                   className="mt-1 block w-full rounded-md border border-slate-300 px-2.5 py-2 text-sm text-slate-900"
                 />
               </label>
@@ -992,6 +1046,39 @@ export function AdminPage({ onBack }: AdminPageProps) {
                 </button>
               </div>
               </div>
+              <fieldset className="border-t border-slate-100 pt-4">
+                <legend className="mb-2 text-xs font-medium text-slate-600">Product visibility and promotion</legend>
+                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={product.is_featured}
+                      onChange={(event) => updateProduct(product.id, { is_featured: event.target.checked })}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Popular / Featured
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={product.is_bestseller}
+                      onChange={(event) => updateProduct(product.id, { is_bestseller: event.target.checked })}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    Bestseller
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={product.is_new}
+                      onChange={(event) => updateProduct(product.id, { is_new: event.target.checked })}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    New arrival
+                  </label>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">A discount is shown when the original price is higher than the current price.</p>
+              </fieldset>
               <div className="grid gap-3 border-t border-slate-100 pt-4 md:grid-cols-2">
                 <label className="text-xs font-medium text-slate-600">
                   Product name (English)
