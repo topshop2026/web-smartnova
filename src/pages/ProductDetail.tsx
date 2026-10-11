@@ -408,7 +408,7 @@ export function ProductDetail({ product, onClose, onNavigate, onChat }: ProductD
                     onClick={() => onNavigate('contact')}
                     className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
                   >
-                    <MessageCircle size={17} /> Tanya tentang produk ini
+                    <MessageCircle size={17} /> Konsultasi dengan Admin
                   </button>
                 )}
               </div>
