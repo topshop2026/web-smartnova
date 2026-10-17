@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ClipboardList, Star, X } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { supabase, type Order, type OrderItem } from '@/lib/supabase';
@@ -32,6 +32,8 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState('');
   const [reviewLookupError, setReviewLookupError] = useState('');
+  const [paymentSyncError, setPaymentSyncError] = useState('');
+  const paymentSyncAttempted = useRef(new Set<string>());
   const [reviewedProductIds, setReviewedProductIds] = useState<Set<string>>(new Set());
   const [reviewDraft, setReviewDraft] = useState<ReviewDraft | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
@@ -43,6 +45,7 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
     if (!user) {
       setOrders([]);
       setReviewedProductIds(new Set());
+      setPaymentSyncError('');
       setLoadingOrders(false);
       return;
     }
@@ -61,10 +64,40 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
           .eq('user_id', user.id),
       ]);
       if (!active) return;
+      let loadedOrders = (ordersResult.data as Order[] | null) ?? [];
       if (ordersResult.error) setError(t('Riwayat pesanan tidak dapat dimuat. Silakan coba lagi.'));
       else {
         setError('');
-        setOrders((ordersResult.data as Order[] | null) ?? []);
+        const pendingOrders = loadedOrders.filter((order) =>
+          order.status === 'pending'
+          && order.payment_redirect_url
+          && !paymentSyncAttempted.current.has(order.order_number)
+        );
+        pendingOrders.forEach((order) => paymentSyncAttempted.current.add(order.order_number));
+        if (pendingOrders.length > 0) {
+          const syncResults = await Promise.all(pendingOrders.map((order) =>
+            supabase.functions.invoke('sync-midtrans-order-status', {
+              body: { order_number: order.order_number },
+            })
+          ));
+          if (!active) return;
+          const syncFailed = syncResults.some((result) => result.error);
+          setPaymentSyncError(syncFailed ? t('Payment status could not be verified. Please refresh or contact support before paying again.') : '');
+          if (syncResults.some((result) => !result.error)) {
+            const refreshedOrders = await supabase
+              .from('orders')
+              .select('id, order_number, total_amount, status, fulfillment_status, payment_redirect_url, created_at, items_json')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false });
+            if (!active) return;
+            if (refreshedOrders.error) {
+              setError(t('Riwayat pesanan tidak dapat dimuat. Silakan coba lagi.'));
+            } else {
+              loadedOrders = (refreshedOrders.data as Order[] | null) ?? loadedOrders;
+            }
+          }
+        }
+        setOrders(loadedOrders);
       }
       setReviewLookupError(reviewsResult.error ? t('Your reviews could not be loaded. Please try again.') : '');
       setReviewedProductIds(new Set((reviewsResult.data ?? []).map((review) => review.product_id)));
@@ -154,6 +187,7 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
       </div>
 
       {error && <p role="alert" className="mt-6 rounded-lg bg-rose-50 p-4 text-sm text-rose-700">{error}</p>}
+      {paymentSyncError && <p role="alert" className="mt-4 rounded-lg bg-amber-50 p-4 text-sm text-amber-800">{paymentSyncError}</p>}
       {loadingOrders ? (
         <p className="py-12 text-center text-sm text-slate-500">{t('Memuat pesanan...')}</p>
       ) : orders.length === 0 ? (
@@ -164,9 +198,7 @@ export function OrderHistoryPage({ onBack, onSignIn }: OrderHistoryPageProps) {
             const progressValue = order.status === 'completed' && order.fulfillment_status === 'waiting_payment'
               ? 'payment_success'
               : order.fulfillment_status;
-            const paymentValue = order.status === 'pending' && progressValue !== 'waiting_payment'
-              ? 'completed'
-              : order.status;
+            const paymentValue = order.status;
             const paymentStatus = getPaymentStatus(paymentValue, t);
             const fulfillmentStatus = getOrderStatus(progressValue);
             return (

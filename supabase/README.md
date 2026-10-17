@@ -47,9 +47,12 @@ Deploy both functions after setting the secrets:
 ```sh
 supabase functions deploy create-midtrans-payment
 supabase functions deploy midtrans-webhook
+supabase functions deploy sync-midtrans-order-status
 ```
 
 In the Midtrans Sandbox dashboard, set the payment notification URL to `https://<project-ref>.supabase.co/functions/v1/midtrans-webhook`, replacing `<project-ref>` with the linked Supabase project's ref. The webhook validates each notification using the same Sandbox Server Key. The order becomes `completed` only after a valid `settlement` notification (or accepted `capture`); returning to the storefront alone does not confirm payment.
+
+The order history also checks any still-pending order against the Midtrans status API using the authenticated customer's account and the Server Key stored in Edge Function secrets. Deploy `sync-midtrans-order-status` along with the webhook. Payment status is only changed after Midtrans confirms the order number and amount.
 
 ## Configure payment confirmations
 
@@ -63,7 +66,7 @@ Successful payments can send a transactional email through Resend and a template
 - `WHATSAPP_TEMPLATE_LANGUAGE`: approved template language code, commonly `id`.
 - `WHATSAPP_API_VERSION`: supported Graph API version in the form `vNN.N`.
 
-The approved WhatsApp template must have three body variables in this order: customer name, order number, and formatted total. The checkout asks for an Indonesian WhatsApp number and explicit consent. Only a verified Midtrans `settlement` (or accepted `capture`) triggers confirmations; pending, failed, and expired payments do not. Each channel is tracked separately so a retry for one provider does not resend a confirmation already delivered by the other. Configure these secrets before testing; provider failures return an error to Midtrans so its notification can be retried.
+The approved WhatsApp template must have three body variables in this order: customer name, order number, and formatted total. The checkout asks for an Indonesian WhatsApp number and explicit consent. Only a verified Midtrans `settlement` (or accepted `capture`) triggers confirmations; pending, failed, and expired payments do not. Each channel is tracked separately so a retry for one provider does not resend a confirmation already delivered by the other. Payment notifications are acknowledged after the payment status is saved; provider delivery errors are recorded in the Edge Function logs and do not cause Midtrans to report the payment webhook as unavailable.
 
 Apply the new migration and redeploy the payment functions:
 
@@ -71,6 +74,7 @@ Apply the new migration and redeploy the payment functions:
 supabase db push
 supabase functions deploy create-midtrans-payment
 supabase functions deploy midtrans-webhook
+supabase functions deploy sync-midtrans-order-status
 ```
 
 Configure the Supabase Auth site URL and email confirmation behavior for the storefront domain as well. Once the storefront and secrets are configured, place a test order and complete it with a payment method and test credentials supported by Midtrans Sandbox.

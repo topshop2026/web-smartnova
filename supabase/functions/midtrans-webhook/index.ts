@@ -1,5 +1,6 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, jsonResponse } from '../_shared/http.ts';
+import { mapMidtransPaymentStatus } from '../_shared/midtrans.ts';
 
 type ClaimedOrder = {
   order_id: string;
@@ -10,6 +11,56 @@ type ClaimedOrder = {
   total_amount: number;
   items_json: unknown;
   claim_token: string;
+};
+
+type Database = {
+  public: {
+    Tables: {
+      orders: {
+        Row: Record<string, unknown>;
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: {
+      update_midtrans_order_status: {
+        Args: {
+          p_order_number: string;
+          p_total_amount: number;
+          p_next_status: 'pending' | 'completed' | 'failed' | 'expired' | 'refunded';
+        };
+        Returns: string;
+      };
+      claim_order_payment_notification: {
+        Args: {
+          p_order_number: string;
+          p_channel: 'email' | 'whatsapp';
+          p_claim_token: string;
+        };
+        Returns: ClaimedOrder[];
+      };
+      complete_order_payment_notification: {
+        Args: {
+          p_order_id: string;
+          p_channel: 'email' | 'whatsapp';
+          p_claim_token: string;
+        };
+        Returns: boolean;
+      };
+      release_order_payment_notification: {
+        Args: {
+          p_order_id: string;
+          p_channel: 'email' | 'whatsapp';
+          p_claim_token: string;
+        };
+        Returns: undefined;
+      };
+    };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
 };
 
 type OrderLine = {
@@ -143,7 +194,7 @@ async function sendWhatsAppConfirmation(order: ClaimedOrder) {
 }
 
 async function sendClaimedConfirmation(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: SupabaseClient<Database>,
   orderNumber: string,
   channel: 'email' | 'whatsapp'
 ) {
@@ -155,7 +206,7 @@ async function sendClaimedConfirmation(
   });
   if (error) throw new Error(`Unable to claim ${channel} confirmation.`);
 
-  const order = (Array.isArray(data) ? data[0] : null) as ClaimedOrder | undefined;
+  const order = data?.[0];
   if (!order) return;
 
   try {
@@ -204,7 +255,7 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: 'Invalid signature.' }, 401);
     }
 
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+    const adminClient = createClient<Database>(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const paymentAmount = Number(grossAmount);
@@ -212,20 +263,10 @@ Deno.serve(async (request) => {
       return jsonResponse({ error: 'Invalid payment amount.' }, 400);
     }
 
-    const transactionStatus = String(notification.transaction_status ?? '');
-    const fraudStatus = String(notification.fraud_status ?? '');
-    let orderStatus: string;
-    if (transactionStatus === 'settlement' || (transactionStatus === 'capture' && fraudStatus === 'accept')) {
-      orderStatus = 'completed';
-    } else if (transactionStatus === 'expire') {
-      orderStatus = 'expired';
-    } else if (transactionStatus === 'deny' || transactionStatus === 'cancel') {
-      orderStatus = 'failed';
-    } else if (transactionStatus === 'refund' || transactionStatus === 'partial_refund') {
-      orderStatus = 'refunded';
-    } else {
-      orderStatus = 'pending';
-    }
+    const orderStatus = mapMidtransPaymentStatus(
+      String(notification.transaction_status ?? ''),
+      String(notification.fraud_status ?? '')
+    );
 
     const { data: finalStatus, error: updateError } = await adminClient.rpc(
       'update_midtrans_order_status',
@@ -245,13 +286,16 @@ Deno.serve(async (request) => {
       for (const channel of ['email', 'whatsapp'] as const) {
         try {
           await sendClaimedConfirmation(adminClient, orderNumber, channel);
-        } catch {
-          console.error(`Unable to send ${channel} payment confirmation for ${orderNumber}.`);
+        } catch (error) {
+          console.error(
+            `Unable to send ${channel} payment confirmation for ${orderNumber}:`,
+            error instanceof Error ? error.message : String(error)
+          );
           failedChannels.push(channel);
         }
       }
       if (failedChannels.length > 0) {
-        return jsonResponse({ status: finalStatus, retry_notifications: failedChannels }, 503);
+        console.error(`Payment confirmation channels need a separate retry for ${orderNumber}: ${failedChannels.join(', ')}.`);
       }
     }
 

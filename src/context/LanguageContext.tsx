@@ -217,6 +217,8 @@ const translations: Record<string, string> = {
     'Riwayat pesanan tidak dapat dimuat. Silakan coba lagi.',
   'Progress:': 'Progres:',
   'Payment is not yet confirmed.': 'Pembayaran belum terkonfirmasi.',
+  'Payment status could not be verified. Please refresh or contact support before paying again.':
+    'Status pembayaran belum dapat diverifikasi. Muat ulang halaman atau hubungi admin sebelum membayar kembali.',
   'Open the Midtrans page, select QRIS, then scan the QR code to pay.':
     'Buka halaman Midtrans, pilih QRIS, lalu pindai kode QR untuk membayar.',
   'Pay with QRIS': 'Bayar dengan QRIS',
