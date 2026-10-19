@@ -6,6 +6,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   MessageSquareText,
   PackagePlus,
   Plus,
@@ -23,12 +24,13 @@ import { formatPrice } from '@/lib/utils';
 import { getProductImages, parseProductImageUrls, validateProductImageUrls } from '@/lib/productImages';
 import { AdminRevenueOverview } from '@/components/AdminRevenueOverview';
 import { AdminBusinessPanel } from '@/components/AdminBusinessPanel';
+import { AdminPopupAdPanel } from '@/components/AdminPopupAdPanel';
 
 type AdminPageProps = {
   onBack: () => void;
 };
 
-type AdminSection = 'overview' | 'portfolio' | 'leads' | 'categories' | 'products' | 'orders' | 'testimonials';
+type AdminSection = 'overview' | 'portfolio' | 'leads' | 'categories' | 'products' | 'orders' | 'testimonials' | 'popup-ad';
 
 const adminSections: { id: AdminSection; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Dashboard overview', icon: LayoutDashboard },
@@ -38,6 +40,7 @@ const adminSections: { id: AdminSection; label: string; icon: typeof LayoutDashb
   { id: 'products', label: 'Product management', icon: PackagePlus },
   { id: 'orders', label: 'Orders / transactions', icon: ClipboardList },
   { id: 'testimonials', label: 'Editorial testimonials', icon: Quote },
+  { id: 'popup-ad', label: 'Popup Iklan', icon: Megaphone },
 ];
 
 function getAdminSection(): AdminSection {
@@ -569,6 +572,7 @@ export function AdminPage({ onBack }: AdminPageProps) {
           </>}
           {activeSection === 'portfolio' && <AdminBusinessPanel section="portfolio" />}
           {activeSection === 'leads' && <AdminBusinessPanel section="leads" />}
+          {activeSection === 'popup-ad' && <AdminPopupAdPanel />}
           {activeSection === 'testimonials' && <>
       <section className="mb-7 rounded-xl border border-amber-100 bg-amber-50/60 p-5 shadow-sm">
         {testimonialsError && <p role="alert" className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">Editorial testimonials could not be loaded: {testimonialsError}</p>}

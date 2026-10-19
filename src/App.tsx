@@ -14,6 +14,7 @@ import { AccountPage } from '@/pages/AccountPage';
 import { OrderHistoryPage } from '@/pages/OrderHistoryPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { AdminPage } from '@/pages/AdminPage';
+import { PopupAd } from '@/components/PopupAd';
 import { LanguageProvider, useLanguage } from '@/context/LanguageContext';
 
 type Page =
@@ -288,6 +289,7 @@ function AppContent() {
       <Footer onNavigate={handleNavigate} />
 
       <CartDrawer onCheckout={() => handleNavigate('checkout')} />
+      <PopupAd suppressed={page === 'admin'} />
 
       {page === 'product' && !selectedProduct && (
         <div className="mx-auto w-full max-w-xl px-4 py-24 text-center text-slate-600" role="status">
